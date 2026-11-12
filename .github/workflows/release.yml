@@ -47,6 +47,15 @@ jobs:
           cd build/Jeonyeok-darwin-arm64
           zip -qry ../../Jeonyeok-mac.zip Jeonyeok.app
 
+      - name: Build live update package (app code only)
+        if: steps.exists.outputs.skip == 'false'
+        run: |
+          mkdir -p live/node_modules/@mediapipe
+          cp *.js *.html *.css package.json live/
+          cp -r fonts frames live/
+          cp -r node_modules/@mediapipe/selfie_segmentation live/node_modules/@mediapipe/
+          cd live && zip -qry ../jeonyeok-live.zip .
+
       - name: Publish release
         if: steps.exists.outputs.skip == 'false'
         env:
@@ -54,4 +63,4 @@ jobs:
         run: |
           V=${{ steps.v.outputs.version }}
           NOTES=$(git log -1 --pretty=%B)
-          gh release create "v$V" Jeonyeok-mac.zip --title "v$V" --notes "$NOTES"
+          gh release create "v$V" Jeonyeok-mac.zip jeonyeok-live.zip --title "v$V" --notes "$NOTES"

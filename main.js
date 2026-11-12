@@ -633,7 +633,7 @@ function buildMenu() {
       click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
     },
     ...updater.menuItems(),
-    { label: `버전 ${app.getVersion()}`, enabled: false },
+    { label: `버전 ${updater.version}`, enabled: false },
     { label: '종료', click: () => app.quit() },
   ]);
   tray.setContextMenu(menu);

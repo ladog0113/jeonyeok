@@ -1,8 +1,8 @@
 {
   "name": "jeonyeok-dday",
-  "version": "2.7.1",
+  "version": "2.8.0",
   "description": "전역 D-day 데스크톱 펫",
-  "main": "main.js",
+  "main": "bootstrap.js",
   "scripts": {
     "start": "electron ."
   },
