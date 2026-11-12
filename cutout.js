@@ -125,16 +125,34 @@
     return { top, cut: Math.round(cut), cx: sx / Math.max(1, sn), l, r: rr, headW: maxW };
   }
 
-  async function cutoutHead(img) {
-    const seg = await getSeg();
+  function alphaMask(img) {
     const w = img.naturalWidth, h = img.naturalHeight;
-    const res = await seg.run(img);
-    const m = maskValues(res.segmentationMask, w, h);
+    const cv = document.createElement('canvas');
+    cv.width = w;
+    cv.height = h;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+    const d = ctx.getImageData(0, 0, w, h).data;
+    let clear = 0;
+    const m = new Float32Array(w * h);
+    for (let i = 0, j = 0; i < d.length; i += 4, j++) { m[j] = d[i + 3] / 255; if (d[i + 3] < 10) clear++; }
+    return clear > w * h * 0.03 ? m : null;
+  }
+
+  async function cutoutHead(img) {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    let m = alphaMask(img);
+    if (!m) {
+      const seg = await getSeg();
+      const res = await seg.run(img);
+      m = maskValues(res.segmentationMask, w, h);
+    }
     const hr = headRegion(m, w, h);
     if (!hr || hr.headW < w * 0.05) throw new Error('no person found');
     const pad = Math.round(hr.headW * 0.06);
+    const extra = Math.round(hr.headW * 0.18);
     const x0 = Math.max(0, hr.l - pad), x1 = Math.min(w, hr.r + pad);
-    const y0 = Math.max(0, hr.top - pad), y1 = Math.min(h, hr.cut + 2);
+    const y0 = Math.max(0, hr.top - pad), y1 = Math.min(h, hr.cut + extra);
     const cw = x1 - x0, ch = y1 - y0;
     const src = document.createElement('canvas');
     src.width = w;
@@ -142,11 +160,10 @@
     const sctx = src.getContext('2d', { willReadFrequently: true });
     sctx.drawImage(img, 0, 0);
     const pix = sctx.getImageData(x0, y0, cw, ch);
-    const fade = Math.max(3, hr.headW * 0.07);
     for (let y = 0; y < ch; y++) {
       const gy = y + y0;
-      const below = gy - (hr.cut - fade);
-      const fy = below > 0 ? Math.max(0, 1 - below / fade) : 1;
+      const below = gy - hr.cut;
+      const fy = below > 0 ? Math.pow(Math.max(0, 1 - below / Math.max(1, extra)), 1.6) : 1;
       for (let x = 0; x < cw; x++) {
         const gx = x + x0;
         const v = m[gy * w + gx];
@@ -164,16 +181,18 @@
       height: ch,
       headW: hr.headW,
       cx: hr.cx - x0,
+      chin: Math.min(hr.cut, y1) - y0,
     };
   }
 
   function fitCut(cut) {
     const FACE_W = 40.4, FACE_H = 42.8;
     const kc = Math.max(FACE_W / cut.width, FACE_H / cut.height);
-    const k = Math.min(50 / cut.height, 48 / cut.width, 40 / cut.headW);
+    const chin = cut.chin || cut.height;
+    const k = Math.min(50 / chin, 48 / cut.width, 40 / cut.headW);
     const s = k / kc;
     const icx = 50 + (cut.width / 2 - cut.cx) * k;
-    const topY = 64 - cut.height * k;
+    const topY = 64 - chin * k;
     const icy = topY + (cut.height * k) / 2;
     return { x: icx - 50, y: icy - 44.5, s, r: 0, cut: true };
   }
@@ -184,6 +203,7 @@
       const cut = await cutoutHead(img);
       return { url: cut.url, params: fitCut(cut) };
     },
+    fitCut,
     fitFromImage(img) {
       return fitCut({ width: img.naturalWidth, height: img.naturalHeight, headW: img.naturalWidth * 0.88, cx: img.naturalWidth / 2 });
     },

@@ -92,3 +92,8 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 .paper::after { bottom: -10px; }
 .paper span { font-family: "JY Brush", "Nanum Brush Script", serif; color: #0d0d0d; line-height: 1.2; white-space: nowrap; -webkit-text-stroke: .07em #0d0d0d; paint-order: stroke fill; letter-spacing: .04em; text-shadow: .02em .03em .02em rgba(0, 0, 0, .45), -.015em 0 .03em rgba(0, 0, 0, .3); clip-path: inset(0 100% 0 0); animation: brushwipe 2.2s .1s cubic-bezier(.4, .1, .4, 1) forwards; filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, .25)); }
 @keyframes brushwipe { to { clip-path: inset(0 0 0 0); } }
+
+.pet .wheel { position: absolute; left: 63%; top: 56%; width: 26%; height: 26%; opacity: 0; transform: scale(.6) rotate(-20deg); transition: opacity .2s, transform .2s; pointer-events: none; }
+.pet .wheel.on { opacity: 1; transform: scale(1) rotate(0deg); }
+.pet .wheel.on.press { transform: scale(.93) translateY(3%); }
+.pet .flipper { position: relative; }

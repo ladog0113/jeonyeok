@@ -222,6 +222,7 @@ const THEMES = {
   gyscatter: { w: 1800, h: 1800, rot: [[470, 520, -6], [1330, 500, 5], [490, 1270, 4], [1310, 1290, -5]], cw: 700, ch: 438 },
   rspulse: { w: 2000, h: 2420, cells: [[40, 160, 950, 594], [1010, 160, 950, 594], [40, 774, 950, 594], [1010, 774, 950, 594]], r: 30 },
   rsstage: { w: 1200, h: 3600, cells: [[50, 210, 1100, 620], [50, 870, 1100, 620], [50, 1530, 1100, 620], [50, 2190, 1100, 620]], r: 18 },
+  rstrot: { w: 1200, h: 3600, cells: [[60, 200, 1080, 560], [60, 800, 1080, 560], [60, 1400, 1080, 560], [60, 2000, 1080, 560]], r: 18 },
   rescene: { w: 1200, h: 3600, cells: [[50, 270, 1100, 620], [50, 930, 1100, 620], [50, 1590, 1100, 620], [50, 2250, 1100, 620]], r: 90 },
   holo: { w: 1200, h: 3600, cells: [[120, 260, 960, 620], [120, 960, 960, 620], [120, 1660, 960, 620], [120, 2360, 960, 620]], r: 150 },
 };
@@ -1170,6 +1171,10 @@ function cutLayout(n, style) {
     if (n === 1) return { w: 1600, h: 1900, cells: [[60, 150, 1480, 925]], r: 24 };
     return { w: 1200, h: 2340, cells: base.cells, r: 24 };
   }
+  if (style === 'trot') {
+    if (n === 1) return { w: 1600, h: 1880, cells: [[60, 170, 1480, 925]], r: 24 };
+    return { w: 1200, h: 2400, cells: [[60, 180, 1080, 675], [60, 885, 1080, 675]], r: 24 };
+  }
   if (style === 'gypolaroid') {
     if (n === 1) return { w: 1600, h: 1300, cells: [[60, 140, 1480, 925]], r: 4 };
     return { w: 1200, h: 1900, cells: [[60, 150, 1080, 700], [60, 950, 1080, 700]], r: 4 };
@@ -1694,6 +1699,135 @@ async function themeCuts(ctx, th, imgs, o, n, style) {
   }
 }
 
+function goldText(ctx, text, x, y, size, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((rot || 0) * Math.PI / 180);
+  ctx.font = `900 ${size}px "Apple SD Gothic Neo", "Noto Serif KR", serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = size * 0.22;
+  ctx.strokeStyle = '#5a0f12';
+  ctx.strokeText(text, 0, 0);
+  ctx.lineWidth = size * 0.08;
+  ctx.strokeStyle = '#fff3c4';
+  ctx.strokeText(text, 0, 0);
+  const g = ctx.createLinearGradient(0, -size / 2, 0, size / 2);
+  g.addColorStop(0, '#fff6c8');
+  g.addColorStop(0.45, '#f6c64a');
+  g.addColorStop(0.55, '#d99a1e');
+  g.addColorStop(1, '#ffe7a0');
+  ctx.fillStyle = g;
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+}
+function trotBg(ctx, W, H) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#7a1016');
+  g.addColorStop(1, '#3d0609');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  for (let x = 0; x < W; x += 70) {
+    const s = ctx.createLinearGradient(x, 0, x + 70, 0);
+    s.addColorStop(0, 'rgba(0,0,0,0.28)');
+    s.addColorStop(0.5, 'rgba(255,120,120,0.10)');
+    s.addColorStop(1, 'rgba(0,0,0,0.28)');
+    ctx.fillStyle = s;
+    ctx.fillRect(x, 0, 70, H);
+  }
+  const sp = ctx.createRadialGradient(W / 2, -H * 0.1, 0, W / 2, -H * 0.1, H * 0.8);
+  sp.addColorStop(0, 'rgba(255,220,140,0.35)');
+  sp.addColorStop(1, 'rgba(255,220,140,0)');
+  ctx.fillStyle = sp;
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#e8b64a';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(18, 18, W - 36, H - 36);
+  ctx.lineWidth = 2;
+  ctx.strokeRect(32, 32, W - 64, H - 64);
+  rnd = 17;
+  for (let i = 0; i < W * H / 60000; i++) sparkle(ctx, 40 + rand() * (W - 80), 40 + rand() * (H - 80), 8 + rand() * 14, '#ffffff');
+}
+function goldFrameRect(ctx, x, y, w, h, r) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.45)';
+  ctx.shadowBlur = 20;
+  ctx.beginPath();
+  ctx.roundRect(x - 14, y - 14, w + 28, h + 28, r + 14);
+  const g = ctx.createLinearGradient(x, y, x + w, y + h);
+  g.addColorStop(0, '#fff0b0');
+  g.addColorStop(0.3, '#d9a233');
+  g.addColorStop(0.6, '#ffe39a');
+  g.addColorStop(1, '#b77e1c');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.restore();
+}
+function mic(ctx, x, y, s, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot * Math.PI / 180);
+  ctx.fillStyle = '#2b2622';
+  ctx.beginPath();
+  ctx.roundRect(-s * 0.18, s * 0.3, s * 0.36, s * 1.2, s * 0.1);
+  ctx.fill();
+  const g = ctx.createRadialGradient(-s * 0.15, -s * 0.15, 0, 0, 0, s * 0.5);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(1, '#9aa0a6');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 0.45, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#2b2622';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.restore();
+}
+async function themeTrot(ctx, th, imgs, o, n) {
+  const A = await rsAssets(o);
+  const W = th.w, H = th.h;
+  trotBg(ctx, W, H);
+  th.cells.forEach((c) => goldFrameRect(ctx, c[0], c[1], c[2], c[3], th.r));
+  cellsDraw(ctx, th, imgs);
+  const last = th.cells[th.cells.length - 1];
+  const bw = last[2], bh = A.trot1.naturalHeight * bw / A.trot1.naturalWidth;
+  const by = last[1] + last[3] + 24;
+  ctx.drawImage(A.trot1, last[0], by, bw, bh);
+  goldText(ctx, '전역 트로트', W / 2, th.cells[0][1] / 2 + 6, n === 1 ? 96 : 84, -2);
+  mic(ctx, W / 2 - (n === 1 ? 330 : 290), th.cells[0][1] / 2 + 4, 34, -20);
+  mic(ctx, W / 2 + (n === 1 ? 330 : 290), th.cells[0][1] / 2 + 4, 34, 20);
+  const fy0 = by + bh, fy = (fy0 + H - 40) / 2;
+  if (n === 4) {
+    goldFrameRect(ctx, 90, fy0 + 40, 360, 186, 8);
+    drawCover(ctx, A.trot2, 90, fy0 + 40, 360, 186, 8);
+    goldText(ctx, String(o.dday), 790, fy - 50, 150, -3);
+    penText(ctx, ['전역까지 얼씨구'], 790, fy + 70, 64, '#ffe7a0', ['#5a0f12', 10], -2);
+    ctx.fillStyle = '#f3d9a0';
+    ctx.textAlign = 'center';
+    ctx.font = `700 34px ui-monospace, Menlo, monospace`;
+    ctx.fillText(o.date, 790, fy + 150);
+  } else if (n === 2) {
+    goldFrameRect(ctx, 90, fy0 + 40, 340, 176, 8);
+    drawCover(ctx, A.trot2, 90, fy0 + 40, 340, 176, 8);
+    goldText(ctx, String(o.dday), 780, fy - 40, 130, -3);
+    penText(ctx, ['전역까지 얼씨구'], 780, fy + 60, 56, '#ffe7a0', ['#5a0f12', 10], -2);
+    ctx.fillStyle = '#f3d9a0';
+    ctx.textAlign = 'center';
+    ctx.font = `700 30px ui-monospace, Menlo, monospace`;
+    ctx.fillText(o.date, 780, fy + 125);
+  } else {
+    goldText(ctx, String(o.dday), 430, fy, 120, -3);
+    penText(ctx, ['전역까지 얼씨구'], 1000, fy - 18, 62, '#ffe7a0', ['#5a0f12', 10], -2);
+    ctx.fillStyle = '#f3d9a0';
+    ctx.textAlign = 'center';
+    ctx.font = `700 30px ui-monospace, Menlo, monospace`;
+    ctx.fillText(o.date, 1000, fy + 50);
+    goldFrameRect(ctx, 1260, fy - 90, 250, 130, 6);
+    drawCover(ctx, A.trot2, 1260, fy - 90, 250, 130, 6);
+  }
+}
+
 async function frameTheme(o) {
   const cm = /^c([12])-(\w+)$/.exec(o.theme);
   const th = cm ? cutLayout(Number(cm[1]), cm[2]) : THEMES[o.theme];
@@ -1705,7 +1839,9 @@ async function frameTheme(o) {
   c.width = th.w;
   c.height = th.h;
   const ctx = c.getContext('2d');
-  if (cm) await themeCuts(ctx, th, imgs, o, Number(cm[1]), cm[2]);
+  if (cm && cm[2] === 'trot') await themeTrot(ctx, th, imgs, o, Number(cm[1]));
+  else if (cm) await themeCuts(ctx, th, imgs, o, Number(cm[1]), cm[2]);
+  else if (o.theme === 'rstrot') await themeTrot(ctx, th, imgs, o, 4);
   else if (o.theme === 'doodle') await themeDoodle(ctx, th, imgs, o);
   else if (o.theme === 'greenstrip') await themeGreenStrip(ctx, th, imgs, o);
   else if (o.theme === 'rescene') await themeRescene(ctx, th, imgs, o);

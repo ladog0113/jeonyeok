@@ -501,7 +501,7 @@ class Pet {
   }
   setTag(text) { this.tag.textContent = text; }
   busy() {
-    return ['drag', 'leave', 'smash', 'dance', 'write', 'toe', 'star', 'grip', 'grip-go', 'sleep', 'sign', 'slime', 'brush', 'flip', 'rest', 'stretch', 'wave'].includes(this.state) || this.spinT >= 0;
+    return ['drag', 'leave', 'smash', 'dance', 'write', 'toe', 'star', 'grip', 'grip-go', 'sleep', 'sign', 'slime', 'brush', 'flip', 'rest', 'stretch', 'wave', 'horn'].includes(this.state) || this.spinT >= 0;
   }
   walkTo(x, y) {
     this.tx = clamp(x, 10, W() - PW - 10);
@@ -585,6 +585,21 @@ class Pet {
     this.actDur = 1.6;
     if (mouse.seen) this.facing = mouse.x > this.x + PW / 2 ? 1 : -1;
     if (Math.random() < 0.6) this.say(pick(['안녕', '오 왔어?', '일 안 해?', fill('D-{d}', stats())]), 1800);
+  }
+  horn() {
+    if (this.busy()) return;
+    this.state = 'horn';
+    this.actT = 0;
+    this.actDur = 2.8;
+    this.honks = 0;
+    if (!this.wheel) {
+      this.wheel = document.createElement('div');
+      this.wheel.className = 'wheel';
+      this.wheel.innerHTML = '<svg viewBox="-12 -12 24 24" width="100%" height="100%"><circle r="10" fill="none" stroke="#2b2622" stroke-width="3.4"/><circle r="10" fill="none" stroke="#5b5f66" stroke-width="2"/><path d="M-9.5 0 H9.5 M0 0 V9.5" stroke="#5b5f66" stroke-width="2.4" stroke-linecap="round"/><circle r="3.6" fill="#d9473a" stroke="#2b2622" stroke-width="1.2"/></svg>';
+      this.flipper.appendChild(this.wheel);
+    }
+    this.wheel.classList.add('on');
+    if (Math.random() < 0.6) this.say(pick(['비켜!', '전역 차 지나간다', '빵빵 비켜라', fill('D-{d} 남았다 빵빵', stats())]), 2200);
   }
   sign() {
     if (this.busy()) return;
@@ -886,6 +901,24 @@ class Pet {
         darm = [12, -150 + Math.sin(this.actT * 14) * 22];
         danceTilt = 5;
         if (this.actT >= this.actDur) { this.state = 'idle'; this.until = now + 1500; }
+      }
+      if (this.state === 'horn') {
+        this.actT += dt;
+        const t = this.actT;
+        const hits = [0.35, 0.62, 1.55, 1.82];
+        const press = hits.some((h) => t > h - 0.08 && t < h + 0.1);
+        darm = [12, press ? -48 : -66];
+        danceLean = press ? 3 : 1;
+        if (this.wheel) this.wheel.classList.toggle('press', press);
+        if (this.honks < 2 && t > [0.35, 1.55][this.honks]) {
+          makeBlast(this.x + PW / 2 + (this.honks ? 60 : -60), this.y - 40, '빵빵!');
+          this.honks++;
+        }
+        if (t >= this.actDur) {
+          this.state = 'idle';
+          this.until = now + 1500;
+          if (this.wheel) this.wheel.classList.remove('on', 'press');
+        }
       }
       if (this.state === 'sign') {
         this.actT += dt;
@@ -1412,6 +1445,7 @@ function chatter() {
   else if (r < 0.7) { const k = pick(['para', 'whistle', 'shimmy', 'heart', 'power', 'cheer', 'pop']); if (k === 'pop') duoDance(k); else a.dance(k); }
   else if (r < 0.77) cloneJutsu(a);
   else if (r < 0.78) a.toeUp();
+  else if (r < 0.79) a.horn();
   else if (r < 0.8) a.sleep();
   else if (r < 0.81) a.rest();
   else if (r < 0.82) a.sign();
@@ -1501,6 +1535,7 @@ window.petWorld = {
   rest: (slot) => { const p = pickPet(slot); if (p) p.rest(); },
   stretch: (slot) => { const p = pickPet(slot); if (p) p.stretch(); },
   wave: (slot) => { const p = pickPet(slot); if (p) p.wave(); },
+  horn: (slot) => { const p = pickPet(slot); if (p) p.horn(); },
   brush: (slot) => { const p = pickPet(slot); if (p) p.brush(); },
   flip: (slot) => { const p = pickPet(slot); if (p) p.flip(); },
   pop: () => duoDance('pop'),

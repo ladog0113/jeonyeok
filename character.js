@@ -634,6 +634,8 @@
         el.setAttribute('height', h.toFixed(3));
         el.setAttribute('transform', tr);
       }
+      const clipRect = this.svg.querySelector(`#fc${this.uid} rect`);
+      if (clipRect) clipRect.setAttribute('height', cut ? '270' : '264.5');
       if (cut) this.p.img.setAttribute('filter', `url(#fo${this.uid})`);
       else this.p.img.removeAttribute('filter');
       this.p.cutLine.setAttribute('display', cut ? 'none' : 'inline');

@@ -246,7 +246,7 @@ const OUTFIT_NAMES = {
 };
 const ACTIONS = [
   ['한마디 해봐', 'poke'], ['화면 깨기', 'smash'], ['빙글빙글', 'spin'], ['분신술', 'clone'], ['발가락 따봉', 'toe'],
-  ['손가락 별', 'star'], ['그립감', 'grip'], ['공중제비', 'flip'], ['낙서하기', 'scribble'], ['사인하기', 'sign'], ['붓글씨', 'brush'], ['앉아서 쉬기', 'rest'], ['기지개', 'stretch'], ['손 흔들기', 'wave'], ['슬라임 터뜨리기', 'slime'], ['잠자기', 'sleep'],
+  ['손가락 별', 'star'], ['그립감', 'grip'], ['공중제비', 'flip'], ['낙서하기', 'scribble'], ['사인하기', 'sign'], ['붓글씨', 'brush'], ['앉아서 쉬기', 'rest'], ['기지개', 'stretch'], ['손 흔들기', 'wave'], ['클락션 빵빵', 'horn'], ['슬라임 터뜨리기', 'slime'], ['잠자기', 'sleep'],
 ];
 const DANCE_ITEMS = [
   ['파라파라', 'dance'], ['호루라기 춤', 'whistle'], ['어깨 털기', 'shimmy'], ['하트 춤', 'heart'], ['파워 댄스', 'power'], ['BAD', 'pop'], ['응원 춤', 'cheer'],
@@ -370,7 +370,7 @@ function ddayText(cfg) {
 }
 
 let fourQueue = [];
-const THEME4 = ['doodle', 'greenstrip', 'holo', 'rescene', 'rsnight', 'rsdiary', 'rsfilm', 'rssweater', 'gystrip', 'gygrid', 'gybig', 'gyscatter', 'rspulse', 'rsstage'];
+const THEME4 = ['doodle', 'greenstrip', 'holo', 'rescene', 'rsnight', 'rsdiary', 'rsfilm', 'rssweater', 'gystrip', 'gygrid', 'gybig', 'gyscatter', 'rspulse', 'rsstage', 'rstrot'];
 function cutCount(layout) {
   if (!layout || layout === 'single') return 0;
   if (layout === 'two') return 2;
@@ -544,8 +544,8 @@ async function pickFrame() {
   patchConfig({ frameFile: dest, frameStyle: 'custom', capture: 'photo' });
 }
 
-const CUT_STYLES = [['basic', '기본 색 (위에서 고른 색)'], ['doodle', '연두 낙서'], ['greenstrip', '초록 스트립'], ['sign', '핑크 홀로 사인'], ['holo', '리센느 사진'], ['night', '리센느 블루 나이트'], ['diary', '리센느 다이어리'], ['film', '리센느 필름'], ['sweater', '리센느 겨울 니트'], ['pulse', '리센느 펄스'], ['stage', '리센느 무대'], ['leopard', '호피'], ['gypink', '핑크 호피'], ['gywhite', '화이트 호피'], ['gypolaroid', '호피 폴라로이드']];
-const FOUR_OF = { doodle: 'doodle', greenstrip: 'greenstrip', sign: 'holo', holo: 'rescene', night: 'rsnight', diary: 'rsdiary', film: 'rsfilm', sweater: 'rssweater', pulse: 'rspulse', stage: 'rsstage', leopard: 'gystrip', gypink: 'gygrid', gywhite: 'gybig', gypolaroid: 'gyscatter' };
+const CUT_STYLES = [['basic', '기본 색 (위에서 고른 색)'], ['doodle', '연두 낙서'], ['greenstrip', '초록 스트립'], ['sign', '핑크 홀로 사인'], ['holo', '리센느 사진'], ['night', '리센느 블루 나이트'], ['diary', '리센느 다이어리'], ['film', '리센느 필름'], ['sweater', '리센느 겨울 니트'], ['pulse', '리센느 펄스'], ['stage', '리센느 무대'], ['trot', '리센느 트로트'], ['leopard', '호피'], ['gypink', '핑크 호피'], ['gywhite', '화이트 호피'], ['gypolaroid', '호피 폴라로이드']];
+const FOUR_OF = { doodle: 'doodle', greenstrip: 'greenstrip', sign: 'holo', holo: 'rescene', night: 'rsnight', diary: 'rsdiary', film: 'rsfilm', sweater: 'rssweater', pulse: 'rspulse', stage: 'rsstage', trot: 'rstrot', leopard: 'gystrip', gypink: 'gygrid', gywhite: 'gybig', gypolaroid: 'gyscatter' };
 const LAYOUT_NAMES = { single: '한 컷 기본 색', two: '두 컷 기본 색', strip: '네 컷 기본 색 세로', grid: '네 컷 기본 색 2x2' };
 for (const [k, v] of CUT_STYLES) {
   if (k === 'basic') continue;
