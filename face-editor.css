@@ -1,0 +1,15 @@
+.fe { display: flex; flex-direction: column; gap: 12px; font-family: -apple-system, "Apple SD Gothic Neo", sans-serif; color: #2b2a24; }
+.fe-head { font-size: 16px; font-weight: 700; }
+.fe-stage { position: relative; height: 330px; border: 2px solid #2b2a24; border-radius: 10px; background: #e9e4d6; overflow: hidden; cursor: grab; touch-action: none; display: flex; align-items: center; justify-content: center; }
+.fe-stage.grabbing { cursor: grabbing; }
+.fe-stage svg { width: 250px; height: auto; overflow: visible; pointer-events: none; }
+.fe-row { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+.fe-row span { width: 32px; }
+.fe-row input { flex: 1; accent-color: #6b7a3a; }
+.fe-btns { display: flex; gap: 8px; align-items: center; }
+.fe-sp { flex: 1; }
+.fe-btns button { padding: 8px 12px; font-size: 13px; font-weight: 700; border: 2px solid #2b2a24; border-radius: 8px; background: #fff; color: #2b2a24; cursor: pointer; }
+.fe-btns .fe-save { background: #6b7a3a; color: #fff; }
+.fe-stage .fe-hit { pointer-events: all; cursor: move; }
+.fe-status { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 13px; font-weight: 700; color: #2b2a24; pointer-events: none; }
+.fe-status:empty { display: none; }

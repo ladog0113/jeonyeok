@@ -1,0 +1,94 @@
+html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none; font-family: -apple-system, "Apple SD Gothic Neo", sans-serif; }
+#cracks, #stage { position: fixed; inset: 0; }
+#cracks, #stage { pointer-events: none; }
+.crack { position: absolute; pointer-events: none; transition: opacity 1.2s; }
+.pet { position: absolute; left: 0; top: 0; width: 92px; height: 114px; cursor: grab; pointer-events: auto; will-change: transform; }
+.pet.dragging { cursor: grabbing; }
+.pet .swing { width: 100%; height: 100%; transform-origin: 50% 22%; }
+.pet .flipper { width: 100%; height: 100%; transition: transform .24s cubic-bezier(.3,.7,.3,1); }
+.pet.flip .flipper { transform: scaleX(-1); }
+.pet .sprite { display: block; width: 100%; height: 100%; overflow: visible; }
+.bubble {
+  position: absolute; left: 50%; bottom: 118px; transform: translateX(-50%);
+  background: #fffdf5; border: 2.5px solid #1d1c18; border-radius: 14px;
+  padding: 8px 12px; font-size: 14px; font-weight: 700; color: #1d1c18; line-height: 1.35;
+  width: max-content; max-width: 230px; text-align: center; word-break: keep-all;
+  box-shadow: 3px 3px 0 #1d1c18; opacity: 0; transition: opacity .2s; pointer-events: none;
+}
+.bubble::after {
+  content: ""; position: absolute; left: 50%; bottom: -10px; margin-left: -8px;
+  border: 8px solid transparent; border-top-color: #1d1c18; border-bottom: 0;
+}
+.bubble.show { opacity: 1; }
+.tag {
+  position: absolute; left: 50%; top: -8px; transform: translateX(-50%);
+  background: #1d1c18; color: #e9f06a; font-size: 11px; font-weight: 800;
+  padding: 2px 6px; border-radius: 5px; letter-spacing: .5px; white-space: nowrap; pointer-events: none;
+}
+.pet.clone { pointer-events: none; opacity: .92; }
+.spark { position: absolute; width: 7px; height: 7px; margin: -3px 0 0 -3px; border-radius: 50%; background: #fff7b8; box-shadow: 0 0 8px 2px rgba(255, 226, 110, .85); pointer-events: none; animation: spark .9s ease-out forwards; }
+@keyframes spark { from { transform: scale(1); opacity: 1; } to { transform: translateY(14px) scale(.2); opacity: 0; } }
+.scribble { font: 900 40px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; fill: rgba(214, 58, 44, .9); stroke: #fff; stroke-width: 2; paint-order: stroke; stroke-dasharray: 900; stroke-dashoffset: 900; animation: scribble 1.4s ease-out forwards; transition: opacity 1.4s; }
+@keyframes scribble { from { stroke-dashoffset: 900; fill-opacity: 0; } 60% { fill-opacity: 0; } to { stroke-dashoffset: 0; fill-opacity: 1; } }
+.fstar { position: absolute; margin: -15px 0 0 -15px; pointer-events: none; animation: fstar 1.7s ease-out forwards; }
+@keyframes fstar { 0% { transform: scale(0) rotate(-40deg); opacity: 1; } 25% { transform: scale(1.35) rotate(10deg); } 40% { transform: scale(1) rotate(0); } 80% { opacity: 1; } 100% { transform: translateY(-16px) scale(.9); opacity: 0; } }
+.pet { --neon: #ff3df2; }
+.pet.neon .sprite { filter: drop-shadow(0 0 3px var(--neon)) drop-shadow(0 0 9px var(--neon)) drop-shadow(0 0 18px var(--neon)); transition: filter .2s; }
+.blast { position: absolute; transform: translate(-50%, -50%) rotate(var(--r)); font: 900 1em/1 "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; letter-spacing: -.02em; white-space: nowrap; color: #ffe14a; -webkit-text-stroke: .05em #1d1c18; paint-order: stroke fill; text-shadow: .04em .05em 0 #d9473a; pointer-events: none; animation: blastfade 1.3s ease-out forwards; }
+.blast span { display: inline-block; animation: blast .5s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes blast { from { transform: scale(.2) translateY(30%); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes blastfade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+#frame { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+#frame[hidden] { display: none; }
+#frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
+#frame { --fb-bg: #fffaf2; --fb-ink: #2b2622; --fb-acc: #ff7fb0; }
+#frame.fs-black { --fb-bg: #151517; --fb-ink: #f4f1ea; --fb-acc: #e9f06a; }
+#frame.fs-pink { --fb-bg: #ffd3e3; --fb-ink: #9c2a52; --fb-acc: #ff5c8a; }
+#frame.fs-mint { --fb-bg: #c9f1df; --fb-ink: #1f6b4f; --fb-acc: #f2b630; }
+#frame.fs-film { --fb-bg: #111; --fb-ink: #f4f1ea; --fb-acc: #f2b630; }
+#frame.fs-army { --fb-bg: #5f6b3a; --fb-ink: #f4f1ea; --fb-acc: #e9f06a; }
+#frame .fb { position: absolute; background: var(--fb-bg); }
+#frame.fs-army .fb { background: radial-gradient(circle at 20% 30%, #4a5530 0 18px, transparent 19px) 0 0 / 70px 60px, radial-gradient(circle at 70% 70%, #7d8a45 0 14px, transparent 15px) 0 0 / 60px 50px, radial-gradient(circle at 40% 80%, #3b3a2c 0 10px, transparent 11px) 0 0 / 80px 70px, #5f6b3a; }
+#frame .fb-top { top: 0; left: 0; right: 0; height: 44px; display: flex; justify-content: center; align-items: center; gap: 12px; }
+#frame .fb-bottom { bottom: 0; left: 0; right: 0; height: 64px; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; }
+#frame .fb-left { top: 44px; bottom: 64px; left: 0; width: 18px; }
+#frame .fb-right { top: 44px; bottom: 64px; right: 0; width: 18px; }
+#frame.fs-film .fb-top, #frame.fs-film .fb-bottom { background: repeating-linear-gradient(90deg, #111 0 14px, #e9e4d6 14px 26px, #111 26px 40px) top / 100% 8px no-repeat, repeating-linear-gradient(90deg, #111 0 14px, #e9e4d6 14px 26px, #111 26px 40px) bottom / 100% 8px no-repeat, #111; }
+#frame .fb-title { font: 800 20px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: var(--fb-ink); letter-spacing: .08em; }
+#frame .fb-deco { color: var(--fb-acc); font-size: 18px; }
+#frame .fb-deco::before { content: "★"; }
+#frame.fs-pink .fb-deco::before { content: "♥ ♥"; }
+#frame.fs-film .fb-deco::before { content: "●"; }
+#frame.fs-army .fb-deco::before { content: "▲"; }
+#frame .fb-dday { font: 900 30px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: var(--fb-ink); }
+#frame.fs-army .fb-dday { background: #c9ced3; color: #2b2622; padding: 2px 14px; border-radius: 10px 10px 18px 18px; border: 2px solid #2b2622; font-size: 24px; }
+#frame .fb-date { font: 700 15px ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; color: var(--fb-ink); opacity: .7; }
+#frame:not(.fs-custom) { box-shadow: inset 0 0 0 0 transparent; }
+#frame:not(.fs-custom)::after { content: ""; position: absolute; top: 44px; bottom: 64px; left: 18px; right: 18px; border: 2px solid var(--fb-ink); border-radius: 4px; opacity: .55; }
+.zzz { position: absolute; transform: translate(-50%, -50%); font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; font-weight: 900; line-height: 1; white-space: nowrap; color: #b9d8ff; -webkit-text-stroke: .04em #1d1c18; paint-order: stroke fill; pointer-events: none; transition: opacity .5s; }
+.zzz span { display: inline-block; animation: zfloat 2.4s ease-in-out infinite; }
+.zzz.out { opacity: 0; }
+@keyframes zfloat { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-.12em) rotate(4deg); } }
+.sign text { font-family: "JY Pen", "Nanum Pen Script", cursive; fill: #1d1c18; fill-opacity: 0; stroke: #1d1c18; stroke-width: 1.2; stroke-dasharray: 900; stroke-dashoffset: 900; animation: signdraw 1.3s ease-out forwards, signfill .4s 1s forwards; }
+.sign .sign-main { font-size: 78px; }
+.sign .sign-sub { font-size: 48px; }
+@keyframes signfill { to { fill-opacity: 1; } }
+.sign { transition: opacity 1.4s; }
+@keyframes signdraw { to { stroke-dashoffset: 0; } }
+.slime { position: absolute; pointer-events: none; transform-origin: 50% 100%; }
+.slime.jiggle { animation: jiggle .35s ease-out; }
+@keyframes jiggle { 0% { transform: scale(1, 1); } 30% { transform: scale(1.25, .7); } 60% { transform: scale(.88, 1.15); } 100% { transform: scale(1, 1); } }
+.splat { animation: splat .28s cubic-bezier(.2, 1.6, .4, 1) both; }
+@keyframes splat { from { transform: scale(.1); } to { transform: scale(1); } }
+.splat .drip { stroke-dasharray: var(--len) 999; stroke-dashoffset: var(--len); animation: drip 2.4s .3s ease-in forwards; }
+@keyframes drip { to { stroke-dashoffset: 0; } }
+@font-face { font-family: "JY Pen"; src: url("fonts/nanum-pen-script-korean-400-normal.woff2") format("woff2"); unicode-range: U+1100-11FF, U+3130-318F, U+AC00-D7AF; }
+@font-face { font-family: "JY Pen"; src: url("fonts/nanum-pen-script-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF; }
+@font-face { font-family: "JY Brush"; src: url("fonts/nanum-brush-script-korean-400-normal.woff2") format("woff2"); unicode-range: U+1100-11FF, U+3130-318F, U+AC00-D7AF; }
+@font-face { font-family: "JY Brush"; src: url("fonts/nanum-brush-script-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF; }
+.paper { position: absolute; display: flex; align-items: center; justify-content: center; background: #fbf7ec; border: 2px solid #2b2622; box-shadow: 4px 5px 0 rgba(0, 0, 0, .25); pointer-events: none; transition: opacity 1.2s; padding: 0 .45em; }
+.paper::before, .paper::after { content: ""; position: absolute; left: -6px; right: -6px; height: 14px; background: #6b4a2b; border: 2px solid #2b2622; border-radius: 7px; }
+.paper::before { top: -10px; }
+.paper::after { bottom: -10px; }
+.paper span { font-family: "JY Brush", "Nanum Brush Script", serif; color: #0d0d0d; line-height: 1.2; white-space: nowrap; -webkit-text-stroke: .07em #0d0d0d; paint-order: stroke fill; letter-spacing: .04em; text-shadow: .02em .03em .02em rgba(0, 0, 0, .45), -.015em 0 .03em rgba(0, 0, 0, .3); clip-path: inset(0 100% 0 0); animation: brushwipe 2.2s .1s cubic-bezier(.4, .1, .4, 1) forwards; filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, .25)); }
+@keyframes brushwipe { to { clip-path: inset(0 0 0 0); } }

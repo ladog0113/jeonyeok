@@ -1,0 +1,20 @@
+{
+  "name": "jeonyeok-dday",
+  "version": "2.6.0",
+  "description": "전역 D-day 데스크톱 펫",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^33.4.11"
+  },
+  "productName": "Jeonyeok",
+  "dependencies": {
+    "@mediapipe/selfie_segmentation": "^0.1.1675465747"
+  }
+}

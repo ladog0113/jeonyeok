@@ -1,0 +1,1731 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: "JY Pen"; src: url("fonts/nanum-pen-script-korean-400-normal.woff2") format("woff2"); unicode-range: U+1100-11FF, U+3130-318F, U+AC00-D7AF; }
+@font-face { font-family: "JY Pen"; src: url("fonts/nanum-pen-script-latin-400-normal.woff2") format("woff2"); unicode-range: U+0000-00FF; }
+</style>
+<script src="character.js"></script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const STYLES = {
+  white: { bg: '#fffaf2', ink: '#2b2622', acc: '#ff7fb0', deco: '★' },
+  black: { bg: '#151517', ink: '#f4f1ea', acc: '#e9f06a', deco: '★' },
+  pink: { bg: '#ffd3e3', ink: '#9c2a52', acc: '#ff5c8a', deco: '♥ ♥' },
+  mint: { bg: '#c9f1df', ink: '#1f6b4f', acc: '#f2b630', deco: '★' },
+  film: { bg: '#111111', ink: '#f4f1ea', acc: '#f2b630', deco: '●' },
+  army: { bg: '#5f6b3a', ink: '#f4f1ea', acc: '#e9f06a', deco: '▲' },
+};
+const FONT = '"Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
+
+function loadImg(url) {
+  return new Promise((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = rej;
+    i.src = url;
+  });
+}
+
+function camo(ctx, x, y, w, h) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  ctx.fillStyle = '#5f6b3a';
+  ctx.fillRect(x, y, w, h);
+  const cols = ['#4a5530', '#7d8a45', '#3b3a2c'];
+  const n = Math.ceil((w * h) / 900);
+  for (let i = 0; i < n; i++) {
+    ctx.fillStyle = cols[i % 3];
+    ctx.beginPath();
+    const r = 6 + Math.random() * 16;
+    ctx.ellipse(x + Math.random() * w, y + Math.random() * h, r * 1.4, r, Math.random() * 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+async function frameImage(o) {
+  const shot = await loadImg(o.shot);
+  const w = shot.naturalWidth, h = shot.naturalHeight;
+  const u = Math.max(10, Math.min(w, h) * 0.035);
+  const side = Math.round(u), top = Math.round(u * 2.4), bottom = Math.round(u * 3.6);
+  const cw = w + side * 2, ch = h + top + bottom;
+  const c = document.getElementById('c');
+  c.width = cw;
+  c.height = ch;
+  const ctx = c.getContext('2d');
+  const st = STYLES[o.style] || STYLES.white;
+  if (o.style === 'army') camo(ctx, 0, 0, cw, ch);
+  else {
+    ctx.fillStyle = st.bg;
+    ctx.fillRect(0, 0, cw, ch);
+  }
+  if (o.style === 'film') {
+    ctx.fillStyle = '#e9e4d6';
+    const hole = u * 0.45, gap = u * 0.9;
+    for (let x = gap / 2; x < cw; x += gap) {
+      ctx.fillRect(x, u * 0.3, hole, hole * 0.8);
+      ctx.fillRect(x, ch - u * 0.3 - hole * 0.8, hole, hole * 0.8);
+    }
+  }
+  ctx.drawImage(shot, side, top, w, h);
+  ctx.strokeStyle = st.ink;
+  ctx.globalAlpha = 0.55;
+  ctx.lineWidth = Math.max(1, u * 0.08);
+  ctx.strokeRect(side, top, w, h);
+  ctx.globalAlpha = 1;
+  if (o.custom) {
+    const f = await loadImg(o.custom);
+    ctx.drawImage(f, 0, 0, cw, ch);
+  } else {
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.font = `800 ${Math.round(u * 0.95)}px ${FONT}`;
+    const title = '전역까지';
+    const tw = ctx.measureText(title).width;
+    ctx.fillStyle = st.ink;
+    ctx.fillText(title, cw / 2, top / 2);
+    ctx.fillStyle = st.acc;
+    ctx.font = `700 ${Math.round(u * 0.85)}px ${FONT}`;
+    ctx.fillText(st.deco, cw / 2 - tw / 2 - u * 1.2, top / 2);
+    ctx.fillText(st.deco, cw / 2 + tw / 2 + u * 1.2, top / 2);
+    const by = top + h + bottom / 2;
+    ctx.textAlign = 'left';
+    ctx.font = `900 ${Math.round(u * 1.5)}px ${FONT}`;
+    if (o.style === 'army') {
+      const tw2 = ctx.measureText(o.dday).width;
+      ctx.fillStyle = '#c9ced3';
+      ctx.strokeStyle = '#2b2622';
+      ctx.lineWidth = Math.max(1, u * 0.1);
+      const bx = side + u * 0.6, bw = tw2 + u * 1.2, bh = u * 2;
+      ctx.beginPath();
+      ctx.roundRect(bx, by - bh / 2, bw, bh, u * 0.5);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#2b2622';
+      ctx.fillText(o.dday, bx + u * 0.6, by);
+    } else {
+      ctx.fillStyle = st.ink;
+      ctx.fillText(o.dday, side + u * 0.6, by);
+    }
+    ctx.textAlign = 'right';
+    ctx.font = `700 ${Math.round(u * 0.7)}px ui-monospace, Menlo, monospace`;
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = st.ink;
+    ctx.fillText(o.date, cw - side - u * 0.6, by);
+    ctx.globalAlpha = 1;
+  }
+  return c.toDataURL('image/png');
+}
+const SPEC = {
+  single: { w: 1920, h: 1500, cells: [[60, 120, 1800, 1125]], foot: [1245, 1500] },
+  two: { w: 1200, h: 1840, cells: [[60, 170, 1080, 675], [60, 885, 1080, 675]], foot: [1560, 1840] },
+  strip: { w: 1200, h: 3600, cells: [[60, 150, 1080, 675], [60, 865, 1080, 675], [60, 1580, 1080, 675], [60, 2295, 1080, 675]], foot: [2970, 3600] },
+  grid: { w: 1800, h: 1400, cells: [[60, 140, 820, 512], [920, 140, 820, 512], [60, 692, 820, 512], [920, 692, 820, 512]], foot: [1204, 1400] },
+};
+
+function drawCover(ctx, img, x, y, w, h, r) {
+  // 스크린샷은 잘라내지 않고 칸 안에 전부 들어가게 넣음. 비율이 다르면 남는 부분은 같은 사진을 흐리게 깔아 채움
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const cover = Math.max(w / iw, h / ih), fit = Math.min(w / iw, h / ih);
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.clip();
+  if (fit / cover > 0.97) {
+    const sw = w / cover, sh = h / cover;
+    ctx.drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, x, y, w, h);
+  } else {
+    const bw = iw * cover * 1.15, bh = ih * cover * 1.15;
+    ctx.filter = 'blur(26px) brightness(0.9)';
+    ctx.drawImage(img, x + (w - bw) / 2, y + (h - bh) / 2, bw, bh);
+    ctx.filter = 'none';
+    const dw = iw * fit, dh = ih * fit;
+    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  }
+  ctx.restore();
+}
+
+async function frameFixed(o) {
+  const sp = SPEC[o.layout] || SPEC.single;
+  const imgs = [];
+  for (const s of o.shots) imgs.push(await loadImg(s));
+  const c = document.getElementById('c');
+  c.width = sp.w;
+  c.height = sp.h;
+  const ctx = c.getContext('2d');
+  const st = STYLES[o.style] || STYLES.white;
+  const u = sp.w * (o.layout === 'strip' ? 0.05 : 0.03);
+  if (!o.custom) {
+    if (o.style === 'army') camo(ctx, 0, 0, sp.w, sp.h);
+    else {
+      ctx.fillStyle = st.bg;
+      ctx.fillRect(0, 0, sp.w, sp.h);
+    }
+    if (o.style === 'film') {
+      ctx.fillStyle = '#e9e4d6';
+      const hole = 20, step = 44;
+      for (let y = step / 2; y < sp.h; y += step) {
+        ctx.fillRect(14, y, 16, hole);
+        ctx.fillRect(sp.w - 30, y, 16, hole);
+      }
+    }
+  }
+  sp.cells.forEach((cell, i) => drawCover(ctx, imgs[i % imgs.length], cell[0], cell[1], cell[2], cell[3], 14));
+  if (o.custom) {
+    const fr = await loadImg(o.custom);
+    ctx.drawImage(fr, 0, 0, sp.w, sp.h);
+  } else {
+    const ty = sp.cells[0][1] / 2;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = st.ink;
+    ctx.font = `800 ${Math.round(u * 1.05)}px ${FONT}`;
+    const tw = ctx.measureText('전역까지').width;
+    ctx.fillText('전역까지', sp.w / 2, ty);
+    ctx.fillStyle = st.acc;
+    ctx.font = `700 ${Math.round(u * 0.9)}px ${FONT}`;
+    ctx.fillText(st.deco, sp.w / 2 - tw / 2 - u * 1.3, ty);
+    ctx.fillText(st.deco, sp.w / 2 + tw / 2 + u * 1.3, ty);
+  }
+  const fy = (sp.foot[0] + sp.foot[1]) / 2;
+  const fu = Math.min(u, (sp.foot[1] - sp.foot[0]) / 4);
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = o.custom ? (o.ink || '#2b2622') : st.ink;
+  ctx.font = `900 ${Math.round(fu * 1.7)}px ${FONT}`;
+  ctx.fillText(o.dday, sp.w / 2, fy - fu * 0.5);
+  ctx.globalAlpha = 0.7;
+  ctx.font = `700 ${Math.round(fu * 0.75)}px ui-monospace, Menlo, monospace`;
+  ctx.fillText(o.date, sp.w / 2, fy + fu * 1.1);
+  ctx.globalAlpha = 1;
+  return c.toDataURL('image/png');
+}
+const frameFour = frameFixed;
+
+/* ---------- theme frames ---------- */
+const THEMES = {
+  doodle: { w: 1200, h: 1800, cells: [[70, 560, 520, 390], [70, 990, 520, 390], [610, 150, 520, 390], [610, 580, 520, 390]], r: 6 },
+  greenstrip: { w: 1200, h: 3600, cells: [[110, 300, 980, 612], [110, 990, 980, 612], [110, 1680, 980, 612], [110, 2370, 980, 612]], r: 10 },
+  rsnight: { w: 1200, h: 3600, cells: [[50, 220, 1100, 690], [50, 950, 1100, 690], [50, 1680, 1100, 690], [50, 2410, 1100, 690]], r: 28 },
+  rsdiary: { w: 1200, h: 3600, cells: [[60, 260, 1080, 675], [60, 975, 1080, 675], [60, 1690, 1080, 675], [60, 2405, 1080, 675]], r: 4 },
+  rsfilm: { w: 1200, h: 3600, cells: [[95, 200, 1010, 690], [95, 930, 1010, 690], [95, 1660, 1010, 690], [95, 2390, 1010, 690]], r: 6 },
+  rssweater: { w: 2000, h: 1560, cells: [[40, 170, 950, 594], [1010, 170, 950, 594], [40, 800, 950, 594], [1010, 800, 950, 594]], r: 24 },
+  gystrip: { w: 1200, h: 3600, cells: [[50, 230, 1100, 690], [50, 960, 1100, 690], [50, 1690, 1100, 690], [50, 2420, 1100, 690]], r: 20 },
+  gygrid: { w: 2000, h: 1560, cells: [[40, 180, 950, 594], [1010, 180, 950, 594], [40, 800, 950, 594], [1010, 800, 950, 594]], r: 20 },
+  gybig: { w: 1200, h: 1800, cells: [[60, 190, 1080, 675], [60, 900, 340, 255], [430, 900, 340, 255], [800, 900, 340, 255]], r: 16 },
+  gyscatter: { w: 1800, h: 1800, rot: [[470, 520, -6], [1330, 500, 5], [490, 1270, 4], [1310, 1290, -5]], cw: 700, ch: 438 },
+  rspulse: { w: 2000, h: 2420, cells: [[40, 160, 950, 594], [1010, 160, 950, 594], [40, 774, 950, 594], [1010, 774, 950, 594]], r: 30 },
+  rsstage: { w: 1200, h: 3600, cells: [[50, 210, 1100, 620], [50, 870, 1100, 620], [50, 1530, 1100, 620], [50, 2190, 1100, 620]], r: 18 },
+  rescene: { w: 1200, h: 3600, cells: [[50, 270, 1100, 620], [50, 930, 1100, 620], [50, 1590, 1100, 620], [50, 2250, 1100, 620]], r: 90 },
+  holo: { w: 1200, h: 3600, cells: [[120, 260, 960, 620], [120, 960, 960, 620], [120, 1660, 960, 620], [120, 2360, 960, 620]], r: 150 },
+};
+const INK = '#1d1a18';
+const PEN = '"JY Pen", "Apple SD Gothic Neo", sans-serif';
+let rnd = 1;
+function rand() { rnd = (rnd * 16807) % 2147483647; return (rnd - 1) / 2147483646; }
+
+function charImg(slot, outfit, pose) {
+  const g = new CharRig(slot, { outfit });
+  g.pose(Object.assign({ blink: 1 }, pose || {}));
+  g.svg.setAttribute('width', 400);
+  g.svg.setAttribute('height', 496);
+  const xml = new XMLSerializer().serializeToString(g.svg);
+  return loadImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml));
+}
+function drawChar(ctx, img, x, y, h, rot, flip) {
+  const w = h * 100 / 124;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((rot || 0) * Math.PI / 180);
+  if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  ctx.restore();
+}
+function stroke(ctx, w) {
+  ctx.lineWidth = w || 5;
+  ctx.strokeStyle = INK;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+function sparkle(ctx, x, y, s, fill) {
+  ctx.beginPath();
+  ctx.moveTo(x, y - s);
+  ctx.quadraticCurveTo(x + s * 0.12, y - s * 0.12, x + s * 0.7, y);
+  ctx.quadraticCurveTo(x + s * 0.12, y + s * 0.12, x, y + s);
+  ctx.quadraticCurveTo(x - s * 0.12, y + s * 0.12, x - s * 0.7, y);
+  ctx.quadraticCurveTo(x - s * 0.12, y - s * 0.12, x, y - s);
+  ctx.fillStyle = fill || '#ffe14a';
+  ctx.fill();
+  if (fill !== '#ffffff') stroke(ctx, 4);
+}
+function heart(ctx, x, y, s, fill, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((rot || 0) * Math.PI / 180);
+  ctx.beginPath();
+  ctx.moveTo(0, s * 0.35);
+  ctx.bezierCurveTo(-s * 1.1, -s * 0.3, -s * 0.45, -s * 1.0, 0, -s * 0.35);
+  ctx.bezierCurveTo(s * 0.45, -s * 1.0, s * 1.1, -s * 0.3, 0, s * 0.35);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  stroke(ctx, 4);
+  ctx.restore();
+}
+function clover(ctx, x, y, s, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((rot || 0) * Math.PI / 180);
+  ctx.fillStyle = '#7ad957';
+  for (let i = 0; i < 3; i++) {
+    const a = -Math.PI / 2 + i * Math.PI * 2 / 3;
+    ctx.beginPath();
+    ctx.arc(Math.cos(a) * s * 0.5, Math.sin(a) * s * 0.5, s * 0.48, 0, Math.PI * 2);
+    ctx.fill();
+    stroke(ctx, 4);
+  }
+  ctx.beginPath();
+  ctx.arc(0, 0, s * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(0, s * 0.2);
+  ctx.quadraticCurveTo(s * 0.1, s * 0.8, s * 0.4, s * 1.1);
+  stroke(ctx, 4);
+  ctx.restore();
+}
+function bubble(ctx, x, y, w, h, lines, size, tail) {
+  ctx.beginPath();
+  ctx.ellipse(x, y, w / 2, h / 2, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  stroke(ctx, 4);
+  if (tail) {
+    ctx.beginPath();
+    ctx.moveTo(x + tail[0], y + tail[1]);
+    ctx.lineTo(x + tail[2], y + tail[3]);
+    ctx.lineTo(x + tail[4], y + tail[5]);
+    ctx.fill();
+    stroke(ctx, 4);
+    ctx.beginPath();
+    ctx.moveTo(x + tail[0], y + tail[1]);
+    ctx.lineTo(x + tail[4], y + tail[5]);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 6;
+    ctx.stroke();
+  }
+  penText(ctx, lines, x, y, size, INK);
+}
+function penText(ctx, lines, x, y, size, fill, outline, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((rot || 0) * Math.PI / 180);
+  ctx.font = `${size}px ${PEN}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const lh = size * 0.95;
+  lines.forEach((t, i) => {
+    const ly = (i - (lines.length - 1) / 2) * lh;
+    if (outline) {
+      ctx.lineWidth = outline[1];
+      ctx.strokeStyle = outline[0];
+      ctx.lineJoin = 'round';
+      ctx.strokeText(t, 0, ly);
+    }
+    ctx.fillStyle = fill;
+    ctx.fillText(t, 0, ly);
+  });
+  ctx.restore();
+}
+function scallop(ctx, x, y, w, h, fill) {
+  const r = h / 2;
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  const n = Math.round(w / 34);
+  for (let i = 0; i <= n; i++) {
+    const cx = x + r + (w - 2 * r) * i / n;
+    ctx.beginPath();
+    ctx.arc(cx, y + 4, 14, Math.PI, 0);
+    ctx.arc(cx, y + h - 4, 14, 0, Math.PI);
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  stroke(ctx, 5);
+}
+function burst(ctx, x, y, rw, rh, fill, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((rot || 0) * Math.PI / 180);
+  ctx.beginPath();
+  const n = 18;
+  for (let i = 0; i < n * 2; i++) {
+    const a = i * Math.PI / n;
+    const k = i % 2 ? 0.78 : 1;
+    ctx.lineTo(Math.cos(a) * rw * k, Math.sin(a) * rh * k);
+  }
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  stroke(ctx, 4);
+  ctx.restore();
+}
+function cellsDraw(ctx, th, imgs) {
+  th.cells.forEach((c, i) => drawCover(ctx, imgs[i % imgs.length], c[0], c[1], c[2], c[3], th.r));
+}
+
+async function themeDoodle(ctx, th, imgs, o) {
+  ctx.fillStyle = '#c6f39b';
+  ctx.fillRect(0, 0, th.w, th.h);
+  cellsDraw(ctx, th, imgs);
+  th.cells.forEach((c) => { ctx.beginPath(); ctx.roundRect(c[0], c[1], c[2], c[3], th.r); stroke(ctx, 5); });
+  const days = String(o.dday);
+  penText(ctx, ['전역까지'], 230, 120, 108, '#ff4fa3', ['#ffffff', 12], -4);
+  heart(ctx, 160, 290, 95, '#ffb3c8', -8);
+  heart(ctx, 330, 285, 95, '#ffb3c8', 6);
+  heart(ctx, 495, 292, 90, '#ffb3c8', -4);
+  penText(ctx, [days], 330, 280, 140, '#ffe14a', [INK, 10], -2);
+  penText(ctx, ['남았다'], 220, 420, 96, '#ff4fa3', ['#ffffff', 12], 3);
+  const b = await charImg('b', 'military', { arm: -20 });
+  drawChar(ctx, b, 470, 470, 210, 0);
+  bubble(ctx, 560, 300, 160, 100, ['꿀빨아?!'], 46, [-40, 30, -80, 75, 0, 48]);
+  penText(ctx, ['전역네컷 × 버티기'], 870, 1060, 64, '#7a3cff', null, -2);
+  scallop(ctx, 640, 1015, 460, 92, '#ffe14a');
+  penText(ctx, ['전역네컷 × 버티기'], 870, 1062, 60, '#ff4fa3');
+  bubble(ctx, 600, 1440, 220, 170, ['그렇게!', '버티면!', '전역 될 일!'], 40, [70, -50, 130, -90, 100, -30]);
+  const a = await charImg('a', 'animal', { arm: 30, darm: -40 });
+  drawChar(ctx, a, 890, 1440, 520, -4);
+  burst(ctx, 980, 1660, 170, 110, '#ffe14a', -10);
+  penText(ctx, ['전역', '축하해요'], 980, 1660, 54, INK, null, -10);
+  ctx.globalAlpha = 0.75;
+  penText(ctx, [o.date], 330, 1440, 48, INK);
+  ctx.globalAlpha = 1;
+  rnd = 7;
+  const deco = [[560, 70, 's'], [1140, 60, 's'], [40, 520, 's'], [1160, 520, 'h'], [600, 520, 's'], [1160, 980, 'h'], [40, 1180, 'h'], [600, 980, 'c'], [40, 1500, 's'], [600, 1700, 'h'], [1150, 1260, 'c'], [60, 1720, 'c'], [700, 1120, 'h'], [920, 60, 'h']];
+  for (const [x, y, k] of deco) {
+    if (k === 's') sparkle(ctx, x, y, 34);
+    else if (k === 'h') heart(ctx, x, y, 30, rand() > 0.5 ? '#ff4fa3' : '#ff9a6b', rand() * 40 - 20);
+    else clover(ctx, x, y, 34, rand() * 40 - 20);
+  }
+}
+
+async function themeGreenStrip(ctx, th, imgs, o) {
+  ctx.fillStyle = '#fbf6e8';
+  ctx.fillRect(0, 0, th.w, th.h);
+  ctx.beginPath();
+  ctx.roundRect(30, 30, th.w - 60, th.h - 60, 50);
+  ctx.fillStyle = '#5fbf4a';
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  ctx.fillStyle = '#4aa83a';
+  for (let i = 0; i < 9; i++) {
+    const y = 200 + i * 420;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.bezierCurveTo(300, y - 160, 700, y + 220, 1200, y - 60);
+    ctx.lineTo(1200, y + 40);
+    ctx.bezierCurveTo(700, y + 300, 300, y - 60, 0, y + 110);
+    ctx.fill();
+  }
+  rnd = 3;
+  for (let i = 0; i < 70; i++) {
+    const x = 50 + rand() * 1100, y = 50 + rand() * 3500;
+    ctx.beginPath();
+    ctx.arc(x, y, 6 + rand() * 9, 0, Math.PI * 2);
+    ctx.fillStyle = rand() > 0.75 ? '#ff9a2e' : '#ffffff';
+    ctx.fill();
+  }
+  ctx.restore();
+  th.cells.forEach((c) => {
+    ctx.beginPath();
+    ctx.roundRect(c[0] - 14, c[1] - 14, c[2] + 28, c[3] + 28, 22);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+  });
+  cellsDraw(ctx, th, imgs);
+  const title = '전역네컷';
+  const cols = ['#ff4a3d', '#ffb21e', '#3d8bff', '#ff5fa2'];
+  ctx.font = `150px ${PEN}`;
+  let tx = 600 - ctx.measureText(title).width / 2;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  [...title].forEach((ch, i) => {
+    ctx.save();
+    ctx.translate(tx, 165);
+    ctx.rotate(((i % 2) ? 4 : -4) * Math.PI / 180);
+    ctx.lineWidth = 18;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineJoin = 'round';
+    ctx.strokeText(ch, 0, 0);
+    ctx.fillStyle = cols[i];
+    ctx.fillText(ch, 0, 0);
+    ctx.restore();
+    tx += ctx.measureText(ch).width;
+  });
+  const mid = [['버텨라', 951], ['꿀빨지 마', 1641], ['곧 전역', 2331]];
+  mid.forEach(([t, y], i) => penText(ctx, [t], i % 2 ? 820 : 380, y, 86, '#ffffff', ['#2f7d24', 12], i % 2 ? 3 : -3));
+  const outfits = ['military', 'hoodie', 'idol'];
+  const peeks = [[1080, 650, 25], [140, 1360, -25], [1080, 2050, 20]];
+  for (let i = 0; i < 3; i++) {
+    const im = await charImg(i % 2 ? 'b' : 'a', outfits[i], { arm: -60, darm: -70 });
+    drawChar(ctx, im, peeks[i][0], peeks[i][1], 230, peeks[i][2], i % 2 === 1);
+  }
+  const big = await charImg('a', 'military', { arm: 20, darm: -60 });
+  drawChar(ctx, big, 960, 3240, 420, 0);
+  const small = await charImg('b', 'military', { arm: -40 });
+  drawChar(ctx, small, 200, 3060, 230, -10, true);
+  penText(ctx, [String(o.dday)], 560, 3200, 170, '#ffe14a', ['#2f7d24', 16], -3);
+  penText(ctx, [o.date], 560, 3340, 56, '#ffffff', ['#2f7d24', 8]);
+  for (const [x, y] of [[70, 240], [1130, 260], [70, 2360], [1130, 1560], [420, 3450], [70, 960]]) sparkle(ctx, x, y, 30, '#ffffff');
+}
+
+async function themeHolo(ctx, th, imgs, o) {
+  const g = ctx.createLinearGradient(0, 0, th.w, th.h);
+  g.addColorStop(0, '#f7c6ec');
+  g.addColorStop(0.3, '#e2b8ff');
+  g.addColorStop(0.55, '#ffd1ea');
+  g.addColorStop(0.8, '#d6c2ff');
+  g.addColorStop(1, '#ffc8e4');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, th.w, th.h);
+  rnd = 11;
+  for (let i = 0; i < 26; i++) {
+    const x = rand() * th.w, y = rand() * th.h, r = 120 + rand() * 260;
+    const rg = ctx.createRadialGradient(x, y, 0, x, y, r);
+    rg.addColorStop(0, `rgba(255,255,255,${0.25 + rand() * 0.25})`);
+    rg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = rg;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  th.cells.forEach((c) => {
+    ctx.beginPath();
+    ctx.roundRect(c[0] - 12, c[1] - 12, c[2] + 24, c[3] + 24, th.r + 12);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fill();
+  });
+  cellsDraw(ctx, th, imgs);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.roundRect(450, 90, 300, 84, 42);
+  ctx.fill();
+  ctx.fillStyle = '#9b3fb8';
+  ctx.font = `800 46px ${FONT}`;
+  ctx.fillText('전역까지', 600, 133);
+  const signs = [['원이 p.s.', '행복하세요', 900, 820, -8], ['리브 p.s.', '행복하세요', 300, 1510, 6], ['미나미 p.s.', '행복하세요', 920, 2210, -6], ['메이 p.s.', '행복하세요', 290, 2900, 7]];
+  for (const [a, b, x, y, r] of signs) penText(ctx, [a, b], x, y, 64, '#8a2fb0', ['#ffffff', 10], r);
+  heart(ctx, 1080, 300, 34, '#ff7fc4', 12);
+  heart(ctx, 120, 1000, 30, '#ff7fc4', -10);
+  heart(ctx, 1080, 1700, 30, '#ff7fc4', 10);
+  heart(ctx, 120, 2400, 34, '#ff7fc4', -12);
+  for (const [x, y, s] of [[180, 140, 34], [1030, 120, 26], [1110, 880, 30], [90, 1640, 26], [1110, 2560, 30], [150, 3080, 34], [1060, 3420, 30]]) sparkle(ctx, x, y, s, '#ffffff');
+  ctx.fillStyle = '#9b3fb8';
+  ctx.font = `900 120px ${FONT}`;
+  ctx.fillText(String(o.dday), 600, 3200);
+  penText(ctx, ['제나 p.p. 행복하세요'], 600, 3330, 60, '#8a2fb0', ['#ffffff', 10], -2);
+  ctx.globalAlpha = 0.7;
+  ctx.fillStyle = '#6d2a86';
+  ctx.font = `700 40px ui-monospace, Menlo, monospace`;
+  ctx.fillText(o.date, 600, 3450);
+  ctx.globalAlpha = 1;
+}
+
+function stickerDraw(ctx, img, x, y, w, h) {
+  const t = document.createElement('canvas');
+  t.width = Math.ceil(w) + 24;
+  t.height = Math.ceil(h) + 24;
+  const tc = t.getContext('2d');
+  for (let a = 0; a < 16; a++) tc.drawImage(img, 12 + Math.cos(a * Math.PI / 8) * 7, 12 + Math.sin(a * Math.PI / 8) * 7, w, h);
+  tc.globalCompositeOperation = 'source-in';
+  tc.fillStyle = '#ffffff';
+  tc.fillRect(0, 0, t.width, t.height);
+  tc.globalCompositeOperation = 'source-over';
+  tc.drawImage(img, 12, 12, w, h);
+  ctx.drawImage(t, x - 12, y - 12);
+}
+function polaroid(ctx, img, cx, cy, w, rot) {
+  const h = w * img.naturalHeight / img.naturalWidth;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rot * Math.PI / 180);
+  ctx.shadowColor = 'rgba(80,20,90,0.25)';
+  ctx.shadowBlur = 18;
+  ctx.shadowOffsetY = 6;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(-w / 2 - 14, -h / 2 - 14, w + 28, h + 52);
+  ctx.shadowColor = 'transparent';
+  ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  ctx.restore();
+}
+async function themeRescene(ctx, th, imgs, o) {
+  const g = ctx.createLinearGradient(0, 0, th.w, th.h);
+  g.addColorStop(0, '#e9b8ff');
+  g.addColorStop(0.25, '#f6c4ec');
+  g.addColorStop(0.5, '#d9b5ff');
+  g.addColorStop(0.75, '#f3c9f0');
+  g.addColorStop(1, '#c9a6ff');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, th.w, th.h);
+  rnd = 21;
+  for (let i = 0; i < 40; i++) {
+    const x = rand() * th.w, y = rand() * th.h, r = 80 + rand() * 220;
+    const rg = ctx.createRadialGradient(x, y, 0, x, y, r);
+    rg.addColorStop(0, `rgba(255,255,255,${0.2 + rand() * 0.3})`);
+    rg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = rg;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  th.cells.forEach((c) => {
+    ctx.beginPath();
+    ctx.roundRect(c[0] - 12, c[1] - 12, c[2] + 24, c[3] + 24, th.r + 12);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fill();
+  });
+  cellsDraw(ctx, th, imgs);
+  const cuts = [await loadImg(o.assets['cut1.png']), await loadImg(o.assets['cut2.png']), await loadImg(o.assets['cut3.png'])];
+  const side = ['r', 'l', 'r'];
+  cuts.forEach((im, i) => {
+    const c = th.cells[i];
+    const h = c[3] * (i === 1 ? 1.02 : 0.95);
+    const w = h * im.naturalWidth / im.naturalHeight;
+    const x = side[i] === 'r' ? c[0] + c[2] - w + 12 : c[0] - 12;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(c[0], c[1], c[2], c[3], th.r);
+    ctx.clip();
+    stickerDraw(ctx, im, x, c[1] + c[3] - h, w, h);
+    ctx.restore();
+  });
+  const p1 = await loadImg(o.assets['photo1.png']);
+  polaroid(ctx, p1, 250, 2560, 280, -7);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.roundRect(440, 110, 320, 90, 45);
+  ctx.fill();
+  ctx.fillStyle = '#8a2fb0';
+  ctx.font = `800 50px ${FONT}`;
+  ctx.fillText('전역까지', 600, 156);
+  const signs = [['원이 p.s.', '행복하세요', 260, 830, -7], ['리브 p.s.', '행복하세요', 940, 1490, 6], ['미나미 p.s.', '행복하세요', 260, 2150, -5], ['메이 p.s.', '행복하세요', 940, 2810, 7]];
+  for (const [a, b, x, y, r] of signs) penText(ctx, [a, b], x, y, 60, '#8a2fb0', ['#ffffff', 10], r);
+  for (let i = 0; i < 5; i++) {
+    const m = await loadImg(o.assets[`mini${i + 1}.png`]);
+    polaroid(ctx, m, 150 + i * 225, 3010, 170, [-6, 4, -3, 5, -5][i]);
+  }
+  for (const [x, y, s] of [[170, 150, 34], [1030, 140, 28], [1120, 1200, 30], [80, 1700, 26], [1110, 2300, 30], [120, 3300, 34], [1080, 3430, 30]]) sparkle(ctx, x, y, s, '#ffffff');
+  heart(ctx, 1090, 330, 32, '#ff7fc4', 12);
+  heart(ctx, 110, 1250, 28, '#ff7fc4', -10);
+  ctx.fillStyle = '#8a2fb0';
+  ctx.font = `900 130px ${FONT}`;
+  ctx.fillText(String(o.dday), 600, 3260);
+  penText(ctx, ['제나 p.p. 행복하세요'], 600, 3385, 60, '#8a2fb0', ['#ffffff', 10], -2);
+  ctx.globalAlpha = 0.7;
+  ctx.fillStyle = '#6d2a86';
+  ctx.font = `700 40px ui-monospace, Menlo, monospace`;
+  ctx.fillText(o.date, 600, 3460);
+  ctx.globalAlpha = 1;
+}
+
+async function rsAssets(o) {
+  const A = {};
+  for (const k of Object.keys(o.assets || {})) A[k.replace('.png', '')] = await loadImg(o.assets[k]);
+  return A;
+}
+function cutInCell(ctx, th, i, im, side, k) {
+  const c = th.cells[i];
+  const h = c[3] * k;
+  const w = h * im.naturalWidth / im.naturalHeight;
+  const x = side === 'r' ? c[0] + c[2] - w + 12 : c[0] - 12;
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(c[0], c[1], c[2], c[3], th.r);
+  ctx.clip();
+  stickerDraw(ctx, im, x, c[1] + c[3] - h + 12, w, h);
+  ctx.restore();
+}
+function circleBadge(ctx, im, cx, cy, r, ring) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r + 8, 0, Math.PI * 2);
+  ctx.fillStyle = ring;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+  const s = Math.max(2 * r / im.naturalWidth, 2 * r / im.naturalHeight);
+  ctx.drawImage(im, cx - im.naturalWidth * s / 2, cy - im.naturalHeight * s / 2 + r * 0.15, im.naturalWidth * s, im.naturalHeight * s);
+  ctx.restore();
+}
+function tape(ctx, x, y, w, rot, col) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot * Math.PI / 180);
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.moveTo(-w / 2, -24);
+  for (let i = 0; i <= 6; i++) ctx.lineTo(-w / 2 + (i % 2 ? 6 : 0), -24 + i * 8);
+  ctx.lineTo(w / 2, 24);
+  for (let i = 0; i <= 6; i++) ctx.lineTo(w / 2 - (i % 2 ? 6 : 0), 24 - i * 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+async function themeNight(ctx, th, imgs, o) {
+  const A = await rsAssets(o);
+  const g = ctx.createLinearGradient(0, 0, 0, th.h);
+  g.addColorStop(0, '#0b1240');
+  g.addColorStop(0.5, '#1a2a78');
+  g.addColorStop(1, '#0a0f30');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, th.w, th.h);
+  rnd = 5;
+  for (let i = 0; i < 14; i++) {
+    const x = rand() * th.w, y = rand() * th.h, r = 150 + rand() * 300;
+    const rg = ctx.createRadialGradient(x, y, 0, x, y, r);
+    rg.addColorStop(0, `rgba(140,180,255,${0.15 + rand() * 0.2})`);
+    rg.addColorStop(1, 'rgba(140,180,255,0)');
+    ctx.fillStyle = rg;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  for (let i = 0; i < 160; i++) {
+    ctx.fillStyle = `rgba(255,255,255,${0.3 + rand() * 0.7})`;
+    ctx.beginPath();
+    ctx.arc(rand() * th.w, rand() * th.h, rand() * 2.6 + 0.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  th.cells.forEach((c) => {
+    ctx.save();
+    ctx.shadowColor = 'rgba(170,200,255,0.9)';
+    ctx.shadowBlur = 30;
+    ctx.beginPath();
+    ctx.roundRect(c[0] - 6, c[1] - 6, c[2] + 12, c[3] + 12, th.r + 6);
+    ctx.fillStyle = '#dfe8ff';
+    ctx.fill();
+    ctx.restore();
+  });
+  cellsDraw(ctx, th, imgs);
+  cutInCell(ctx, th, 0, A.cut2, 'l', 0.92);
+  cutInCell(ctx, th, 2, A.cut3, 'r', 0.92);
+  circleBadge(ctx, A.mini2, th.cells[1][0] + th.cells[1][2] - 90, th.cells[1][1] + 90, 70, '#dfe8ff');
+  circleBadge(ctx, A.mini3, th.cells[3][0] + 90, th.cells[3][1] + 90, 70, '#dfe8ff');
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.save();
+  ctx.shadowColor = '#9fc0ff';
+  ctx.shadowBlur = 24;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `200 64px "Didot", "Times New Roman", serif`;
+  ctx.fillText('전역까지', 600, 120);
+  ctx.font = `300 160px "Didot", "Times New Roman", serif`;
+  ctx.fillText(String(o.dday), 600, 3290);
+  ctx.restore();
+  ctx.fillStyle = 'rgba(220,230,255,0.8)';
+  ctx.font = `400 40px ui-monospace, Menlo, monospace`;
+  ctx.fillText(o.date, 600, 3430);
+  penText(ctx, ['My D-day'], 600, 3520, 54, '#cfe0ff', null, -3);
+  for (const [x, y, s] of [[160, 110, 30], [1040, 130, 24], [1150, 920, 26], [40, 1650, 22], [1160, 2380, 26], [140, 3300, 30], [1060, 3290, 26]]) sparkle(ctx, x, y, s, '#ffffff');
+}
+
+async function themeDiary(ctx, th, imgs, o) {
+  const A = await rsAssets(o);
+  ctx.fillStyle = '#fdfbf4';
+  ctx.fillRect(0, 0, th.w, th.h);
+  ctx.strokeStyle = '#b9d3f0';
+  ctx.lineWidth = 2;
+  for (let y = 80; y < th.h; y += 56) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(th.w, y);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#f2a0a8';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(40, 0);
+  ctx.lineTo(40, th.h);
+  ctx.stroke();
+  th.cells.forEach((c, i) => {
+    ctx.save();
+    ctx.translate(c[0] + c[2] / 2, c[1] + c[3] / 2);
+    ctx.rotate([-0.8, 0.7, -0.6, 0.8][i] * Math.PI / 180);
+    ctx.shadowColor = 'rgba(0,0,0,0.18)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 5;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(-c[2] / 2 - 14, -c[3] / 2 - 14, c[2] + 28, c[3] + 28);
+    ctx.restore();
+  });
+  cellsDraw(ctx, th, imgs);
+  cutInCell(ctx, th, 1, A.cut1, 'r', 0.95);
+  const tapes = ['rgba(255,190,205,0.85)', 'rgba(190,220,255,0.85)', 'rgba(255,230,150,0.85)', 'rgba(200,240,200,0.85)'];
+  th.cells.forEach((c, i) => {
+    tape(ctx, c[0] + 40, c[1] - 4, 170, -32, tapes[i]);
+    tape(ctx, c[0] + c[2] - 40, c[1] - 4, 170, 32, tapes[(i + 1) % 4]);
+  });
+  polaroid(ctx, A.mini1, 940, 3020, 210, 6);
+  tape(ctx, 940, 2880, 150, -4, tapes[0]);
+  polaroid(ctx, A.mini4, 260, 3150, 190, -7);
+  tape(ctx, 260, 3020, 140, 5, tapes[2]);
+  penText(ctx, ['전역 일기'], 300, 150, 110, '#2c3a8a', null, -3);
+  penText(ctx, [o.date + ' 맑음'], 860, 160, 54, '#555555');
+  penText(ctx, ['오늘의 남은 날'], 600, 3150, 56, '#2c3a8a', null, 2);
+  penText(ctx, [String(o.dday)], 600, 3290, 170, '#e2486a', ['#ffffff', 12], -3);
+  ctx.beginPath();
+  ctx.ellipse(600, 3290, 230, 100, -0.05, 0, Math.PI * 2);
+  ctx.strokeStyle = '#e2486a';
+  ctx.lineWidth = 5;
+  ctx.stroke();
+  penText(ctx, ['원이 p.s. 행복하세요'], 600, 3470, 52, '#2c3a8a', null, -1);
+  heart(ctx, 1110, 2260, 30, '#ff8fb0', 10);
+  sparkle(ctx, 90, 1630, 28, '#ffe14a');
+  sparkle(ctx, 1120, 950, 24, '#ffe14a');
+}
+
+async function themeFilm(ctx, th, imgs, o) {
+  const A = await rsAssets(o);
+  ctx.fillStyle = '#141414';
+  ctx.fillRect(0, 0, th.w, th.h);
+  ctx.fillStyle = '#f2ead8';
+  for (let y = 30; y < th.h - 20; y += 70) {
+    ctx.beginPath();
+    ctx.roundRect(24, y, 44, 34, 6);
+    ctx.roundRect(th.w - 68, y, 44, 34, 6);
+    ctx.fill();
+  }
+  cellsDraw(ctx, th, imgs);
+  cutInCell(ctx, th, 3, A.cut1, 'l', 0.9);
+  cutInCell(ctx, th, 1, A.cut3, 'r', 0.9);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ff9a2e';
+  ctx.font = `700 30px ui-monospace, Menlo, monospace`;
+  th.cells.forEach((c, i) => ctx.fillText(`${i + 1}A  JEONYEOK 400`, c[0], c[1] + c[3] + 20));
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f2ead8';
+  ctx.font = `800 54px ${FONT}`;
+  ctx.fillText('전역까지', 600, 110);
+  const mw = 170;
+  for (let i = 0; i < 5; i++) {
+    const im = A['mini' + (i + 1)];
+    const x = 95 + i * ((1010 - mw) / 4);
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x, 3170, mw, mw, 6);
+    ctx.clip();
+    ctx.drawImage(im, x, 3170, mw, mw);
+    ctx.restore();
+  }
+  ctx.fillStyle = '#f2ead8';
+  ctx.font = `900 120px ${FONT}`;
+  ctx.fillText(String(o.dday), 600, 3440);
+  ctx.fillStyle = '#ff9a2e';
+  ctx.font = `700 34px ui-monospace, Menlo, monospace`;
+  ctx.fillText(o.date.replaceAll('.', ' ') , 600, 3535);
+}
+
+async function themeSweater(ctx, th, imgs, o) {
+  const A = await rsAssets(o);
+  ctx.fillStyle = '#6b3f2a';
+  ctx.fillRect(0, 0, th.w, th.h);
+  const band = (y, col) => {
+    ctx.fillStyle = '#f4ead6';
+    ctx.fillRect(0, y, th.w, 70);
+    ctx.fillStyle = col;
+    for (let x = 0; x < th.w; x += 50) {
+      ctx.beginPath();
+      ctx.moveTo(x, y + 35);
+      ctx.lineTo(x + 25, y + 10);
+      ctx.lineTo(x + 50, y + 35);
+      ctx.lineTo(x + 25, y + 60);
+      ctx.fill();
+    }
+  };
+  band(0, '#c8322f');
+  band(th.h - 70, '#c8322f');
+  rnd = 9;
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  for (let i = 0; i < 120; i++) {
+    ctx.beginPath();
+    ctx.arc(rand() * th.w, 70 + rand() * (th.h - 140), 3 + rand() * 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  th.cells.forEach((c) => {
+    ctx.beginPath();
+    ctx.roundRect(c[0] - 10, c[1] - 10, c[2] + 20, c[3] + 20, th.r + 10);
+    ctx.fillStyle = '#f4ead6';
+    ctx.fill();
+  });
+  cellsDraw(ctx, th, imgs);
+  cutInCell(ctx, th, 1, A.cut1, 'r', 0.85);
+  cutInCell(ctx, th, 2, A.cut2, 'l', 0.9);
+  polaroid(ctx, A.photo1, 1000, 1170, 250, 5);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  penText(ctx, ['전역까지 ' + o.dday], 1000, 120, 76, '#f4ead6', ['#6b3f2a', 10], -1);
+  penText(ctx, [o.date], 1000, 1450, 46, '#f4ead6', ['#6b3f2a', 8]);
+  penText(ctx, ['메이 p.s. 행복하세요'], 330, 1450, 50, '#f4ead6', ['#6b3f2a', 8], -2);
+  penText(ctx, ['미나미 p.s. 행복하세요'], 1680, 1450, 50, '#f4ead6', ['#6b3f2a', 8], 2);
+}
+
+function leopard(ctx, w, h, base, spot, inner, seed, sc) {
+  ctx.fillStyle = base;
+  ctx.fillRect(0, 0, w, h);
+  rnd = seed;
+  const step = 78 * sc;
+  for (let gy = -step; gy < h + step; gy += step) {
+    for (let gx = -step; gx < w + step; gx += step) {
+      const x = gx + (rand() - 0.5) * step * 0.7 + ((gy / step) % 2 ? step / 2 : 0);
+      const y = gy + (rand() - 0.5) * step * 0.7;
+      const r = (16 + rand() * 12) * sc;
+      if (rand() < 0.18) {
+        ctx.fillStyle = spot;
+        ctx.beginPath();
+        ctx.ellipse(x, y, r * 0.45, r * 0.32, rand() * 3, 0, Math.PI * 2);
+        ctx.fill();
+        continue;
+      }
+      ctx.fillStyle = inner;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r * 0.8, r * 0.65, rand() * 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = spot;
+      ctx.lineCap = 'round';
+      ctx.lineWidth = r * (0.42 + rand() * 0.18);
+      const n = 2 + Math.floor(rand() * 3);
+      let a = rand() * Math.PI * 2;
+      for (let i = 0; i < n; i++) {
+        const span = (Math.PI * 2 / n) * (0.55 + rand() * 0.3);
+        ctx.beginPath();
+        ctx.ellipse(x, y, r * (0.9 + rand() * 0.25), r * (0.75 + rand() * 0.2), rand() * 0.6, a, a + span);
+        ctx.stroke();
+        a += Math.PI * 2 / n;
+      }
+    }
+  }
+}
+function y2kText(ctx, text, x, y, size, fill, rot) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((rot || 0) * Math.PI / 180);
+  ctx.font = `900 ${size}px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = size * 0.28;
+  ctx.strokeStyle = '#ffffff';
+  ctx.strokeText(text, 0, 0);
+  ctx.lineWidth = size * 0.12;
+  ctx.strokeStyle = INK;
+  ctx.strokeText(text, 0, 0);
+  const g = ctx.createLinearGradient(0, -size / 2, 0, size / 2);
+  g.addColorStop(0, '#ffffff');
+  g.addColorStop(0.45, fill);
+  g.addColorStop(1, fill);
+  ctx.fillStyle = g;
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+}
+function star5(ctx, x, y, r, fill) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + i * Math.PI / 5;
+    const k = i % 2 ? r * 0.45 : r;
+    ctx.lineTo(x + Math.cos(a) * k, y + Math.sin(a) * k);
+  }
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+  stroke(ctx, 4);
+}
+function pinkCellBorders(ctx, th, col) {
+  th.cells.forEach((c) => {
+    ctx.beginPath();
+    ctx.roundRect(c[0] - 14, c[1] - 14, c[2] + 28, c[3] + 28, th.r + 14);
+    ctx.fillStyle = col;
+    ctx.fill();
+    stroke(ctx, 5);
+  });
+}
+function outlineCells(ctx, th) {
+  th.cells.forEach((c) => {
+    ctx.beginPath();
+    ctx.roundRect(c[0], c[1], c[2], c[3], th.r);
+    stroke(ctx, 5);
+  });
+}
+function footDday(ctx, o, x, y, size, fill) {
+  y2kText(ctx, String(o.dday), x, y, size, fill, -3);
+}
+
+async function themeGyStrip(ctx, th, imgs, o) {
+  const A = await rsAssets(o);
+  leopard(ctx, th.w, th.h, '#e2a45f', '#2a1a10', '#b77a3c', 31, 1.3);
+  pinkCellBorders(ctx, th, '#ff4fa3');
+  cellsDraw(ctx, th, imgs);
+  outlineCells(ctx, th);
+  cutInCell(ctx, th, 0, A.gc6, 'r', 0.98);
+  cutInCell(ctx, th, 1, A.gc3, 'l', 0.98);
+  cutInCell(ctx, th, 2, A.gc5, 'r', 0.98);
+  cutInCell(ctx, th, 3, A.gc4, 'l', 0.98);
+  y2kText(ctx, '전역까지', 600, 120, 110, '#ff4fa3', -2);
+  footDday(ctx, o, 560, 3290, 190, '#ff4fa3');
+  bubble(ctx, 980, 3200, 240, 130, ['야호-!'], 64, [-60, 40, -110, 90, -10, 60]);
+  penText(ctx, [o.date], 600, 3470, 56, '#ffffff', [INK, 10]);
+  for (const [x, y, r, c] of [[110, 110, 40, '#ffe14a'], [1100, 140, 34, '#ff9ad0'], [1150, 930, 30, '#ffe14a'], [50, 1660, 30, '#ff9ad0'], [1150, 2390, 30, '#ffe14a'], [140, 3250, 44, '#ff9ad0'], [180, 3480, 30, '#ffe14a']]) star5(ctx, x, y, r, c);
+}
+
+async function themeGyGrid(ctx, th, imgs, o) {
+  const A = await rsAssets(o);
+  leopard(ctx, th.w, th.h, '#ff6fb5', '#2a0c1c', '#e0408f', 47, 1.1);
+  pinkCellBorders(ctx, th, '#ffffff');
+  cellsDraw(ctx, th, imgs);
+  outlineCells(ctx, th);
+  cutInCell(ctx, th, 1, A.gc2, 'r', 1.0);
+  cutInCell(ctx, th, 2, A.gc5, 'l', 1.0);
+  polaroid(ctx, A.car1, 1000, 1330, 300, -4);
+  penText(ctx, ['야호-!'], 1000, 1500, 60, INK);
+  y2kText(ctx, '전역까지 ' + o.dday, 1000, 95, 90, '#ffe14a', -1);
+  penText(ctx, [o.date], 330, 1490, 54, '#ffffff', [INK, 10], -2);
+  penText(ctx, ['갸루 모드 ON'], 1670, 1490, 58, '#ffffff', [INK, 10], 2);
+  for (const [x, y, r, c] of [[90, 90, 40, '#ffe14a'], [1900, 100, 40, '#ffffff'], [1985, 790, 28, '#ffe14a'], [20, 780, 28, '#ffffff']]) star5(ctx, x, y, r, c);
+}
+
+async function themeGyBig(ctx, th, imgs, o) {
+  const A = await rsAssets(o);
+  leopard(ctx, th.w, th.h, '#f1eeea', '#3a3a3a', '#d3cfca', 59, 1.0);
+  pinkCellBorders(ctx, th, '#ff8ac4');
+  cellsDraw(ctx, th, imgs);
+  outlineCells(ctx, th);
+  y2kText(ctx, '전역까지', 600, 100, 96, '#ff4fa3', -2);
+  const L = A.gc5, R = A.gc3;
+  const h = 640;
+  stickerDraw(ctx, L, 20, th.h - h + 20, h * L.naturalWidth / L.naturalHeight, h);
+  stickerDraw(ctx, R, th.w - h * R.naturalWidth / R.naturalHeight - 20, th.h - h + 20, h * R.naturalWidth / R.naturalHeight, h);
+  footDday(ctx, o, 600, 1330, 170, '#ff4fa3');
+  penText(ctx, ['파라파라나', '추고 있어야겠다'], 600, 1530, 60, INK, ['#ffffff', 10], -2);
+  penText(ctx, [o.date], 600, 1700, 48, INK, ['#ffffff', 8]);
+  for (const [x, y, r, c] of [[100, 90, 36, '#ff8ac4'], [1100, 100, 36, '#ffe14a'], [600, 1215, 26, '#ffe14a']]) star5(ctx, x, y, r, c);
+}
+
+async function themeGyScatter(ctx, th, imgs, o) {
+  const A = await rsAssets(o);
+  leopard(ctx, th.w, th.h, '#c98a4b', '#1d120a', '#a8692f', 73, 1.2);
+  th.rot.forEach(([cx, cy, rot], i) => {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rot * Math.PI / 180);
+    ctx.shadowColor = 'rgba(0,0,0,0.35)';
+    ctx.shadowBlur = 24;
+    ctx.shadowOffsetY = 8;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(-th.cw / 2 - 26, -th.ch / 2 - 26, th.cw + 52, th.ch + 110);
+    ctx.shadowColor = 'transparent';
+    drawCover(ctx, imgs[i % imgs.length], -th.cw / 2, -th.ch / 2, th.cw, th.ch, 4);
+    penText(ctx, [['야호-!', '꿀빨아?!', '전역 가자', '버텨라'][i]], 0, th.ch / 2 + 44, 52, INK);
+    ctx.restore();
+  });
+  tape(ctx, 470, 290, 200, -10, 'rgba(255,120,190,0.85)');
+  tape(ctx, 1330, 270, 200, 8, 'rgba(255,230,120,0.85)');
+  tape(ctx, 490, 1040, 200, 6, 'rgba(255,230,120,0.85)');
+  tape(ctx, 1310, 1060, 200, -6, 'rgba(255,120,190,0.85)');
+  y2kText(ctx, '전역까지 ' + o.dday, 900, 900, 110, '#ff4fa3', -3);
+  const g = A.gc4;
+  const gh = 560;
+  stickerDraw(ctx, g, 1800 - gh * g.naturalWidth / g.naturalHeight - 10, th.h - gh + 30, gh * g.naturalWidth / g.naturalHeight, gh);
+  penText(ctx, [o.date], 260, 1730, 52, '#ffffff', [INK, 10]);
+  for (const [x, y, r, c] of [[90, 90, 40, '#ffe14a'], [1720, 90, 40, '#ff9ad0'], [900, 1720, 34, '#ffe14a'], [80, 900, 30, '#ff9ad0']]) star5(ctx, x, y, r, c);
+}
+
+function ecg(ctx, x0, x1, y, amp, col, lw) {
+  ctx.beginPath();
+  ctx.moveTo(x0, y);
+  const mid = (x0 + x1) / 2;
+  ctx.lineTo(mid - amp * 1.6, y);
+  ctx.lineTo(mid - amp * 1.1, y - amp * 0.5);
+  ctx.lineTo(mid - amp * 0.6, y + amp * 0.3);
+  ctx.lineTo(mid - amp * 0.2, y - amp * 1.4);
+  ctx.lineTo(mid + amp * 0.3, y + amp * 1.0);
+  ctx.lineTo(mid + amp * 0.7, y - amp * 0.3);
+  ctx.lineTo(mid + amp * 1.1, y);
+  ctx.lineTo(x1, y);
+  ctx.strokeStyle = col;
+  ctx.lineWidth = lw;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+}
+async function themePulse(ctx, th, imgs, o) {
+  const A = await rsAssets(o);
+  const g = ctx.createLinearGradient(0, 0, th.w, th.h);
+  g.addColorStop(0, '#cfe0ff');
+  g.addColorStop(0.5, '#e6dcff');
+  g.addColorStop(1, '#bcd2ff');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, th.w, th.h);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 5; i++) {
+    ctx.beginPath();
+    ctx.moveTo(-100, 300 + i * 420);
+    ctx.bezierCurveTo(500, -100 + i * 380, 1300, 900 + i * 200, 2100, 200 + i * 400);
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 30 + i * 8;
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 40;
+    ctx.stroke();
+  }
+  ctx.restore();
+  th.cells.forEach((c) => {
+    ctx.save();
+    ctx.shadowColor = 'rgba(120,120,255,0.5)';
+    ctx.shadowBlur = 30;
+    ctx.beginPath();
+    ctx.roundRect(c[0] - 10, c[1] - 10, c[2] + 20, c[3] + 20, th.r + 10);
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.fill();
+    ctx.restore();
+  });
+  cellsDraw(ctx, th, imgs);
+  ctx.drawImage(A.pulse, 50, 1370, 1900, A.pulse.naturalHeight * 1900 / A.pulse.naturalWidth);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#5b4bb8';
+  ctx.font = `italic 400 76px "Didot", "Times New Roman", serif`;
+  ctx.fillText('전역까지', 1000, 82);
+  ecg(ctx, 80, 640, 82, 40, '#7d6be0', 4);
+  ecg(ctx, 1360, 1920, 82, 40, '#7d6be0', 4);
+  ctx.save();
+  ctx.shadowColor = 'rgba(90,70,200,0.6)';
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `italic 400 150px "Didot", "Times New Roman", serif`;
+  ctx.fillText(String(o.dday), 1000, 2250);
+  ctx.restore();
+  ecg(ctx, 300, 1700, 2360, 26, '#7d6be0', 4);
+  ctx.fillStyle = '#5b4bb8';
+  ctx.font = `600 34px ui-monospace, Menlo, monospace`;
+  ctx.fillStyle = '#e6dcff';
+  ctx.fillRect(840, 2335, 320, 50);
+  ctx.fillStyle = '#5b4bb8';
+  ctx.fillText(o.date, 1000, 2360);
+}
+async function themeStage(ctx, th, imgs, o) {
+  const A = await rsAssets(o);
+  ctx.fillStyle = '#07070c';
+  ctx.fillRect(0, 0, th.w, th.h);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [x, a, col] of [[150, 0.25, '180,190,255'], [600, 0.0, '255,255,255'], [1050, -0.25, '210,170,255']]) {
+    const bg = ctx.createLinearGradient(x, 0, x + a * 3600, 3600);
+    bg.addColorStop(0, `rgba(${col},0.35)`);
+    bg.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.moveTo(x - 30, 0);
+    ctx.lineTo(x + 30, 0);
+    ctx.lineTo(x + a * 3600 + 420, 3600);
+    ctx.lineTo(x + a * 3600 - 420, 3600);
+    ctx.fill();
+  }
+  ctx.restore();
+  th.cells.forEach((c) => {
+    ctx.beginPath();
+    ctx.roundRect(c[0] - 4, c[1] - 4, c[2] + 8, c[3] + 8, th.r + 4);
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  });
+  cellsDraw(ctx, th, imgs);
+  const fl = ctx.createRadialGradient(600, 3500, 0, 600, 3500, 600);
+  fl.addColorStop(0, 'rgba(200,190,255,0.45)');
+  fl.addColorStop(1, 'rgba(200,190,255,0)');
+  ctx.fillStyle = fl;
+  ctx.fillRect(0, 2900, 1200, 700);
+  ctx.drawImage(A.stage, 600 - 999 / 2, 2830, 999, 760);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `800 58px ${FONT}`;
+  ctx.fillText('전역까지 ' + o.dday, 600, 110);
+  ecg(ctx, 60, 300, 110, 26, 'rgba(255,255,255,0.8)', 3);
+  ecg(ctx, 900, 1140, 110, 26, 'rgba(255,255,255,0.8)', 3);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = `600 30px ui-monospace, Menlo, monospace`;
+  ctx.fillText(o.date, 600, 2860);
+}
+
+function cutLayout(n, style) {
+  const base = CUTN[n];
+  if (style === 'pulse') {
+    if (n === 1) return { w: 1600, h: 1900, cells: [[60, 150, 1480, 925]], r: 24 };
+    return { w: 1200, h: 2340, cells: base.cells, r: 24 };
+  }
+  if (style === 'gypolaroid') {
+    if (n === 1) return { w: 1600, h: 1300, cells: [[60, 140, 1480, 925]], r: 4 };
+    return { w: 1200, h: 1900, cells: [[60, 150, 1080, 700], [60, 950, 1080, 700]], r: 4 };
+  }
+  return base;
+}
+const CUTN = {
+  1: { w: 1600, h: 1240, cells: [[60, 150, 1480, 925]], r: 24 },
+  2: { w: 1200, h: 1840, cells: [[60, 170, 1080, 675], [60, 885, 1080, 675]], r: 24 },
+};
+function nightBg(ctx, w, h) {
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#0b1240');
+  g.addColorStop(0.5, '#1a2a78');
+  g.addColorStop(1, '#0a0f30');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  rnd = 5;
+  for (let i = 0; i < 8; i++) {
+    const x = rand() * w, y = rand() * h, r = 150 + rand() * 300;
+    const rg = ctx.createRadialGradient(x, y, 0, x, y, r);
+    rg.addColorStop(0, `rgba(140,180,255,${0.15 + rand() * 0.2})`);
+    rg.addColorStop(1, 'rgba(140,180,255,0)');
+    ctx.fillStyle = rg;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  for (let i = 0; i < w * h / 12000; i++) {
+    ctx.fillStyle = `rgba(255,255,255,${0.3 + rand() * 0.7})`;
+    ctx.beginPath();
+    ctx.arc(rand() * w, rand() * h, rand() * 2.6 + 0.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+function holoBg(ctx, w, h) {
+  const g = ctx.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0, '#e9b8ff');
+  g.addColorStop(0.35, '#f6c4ec');
+  g.addColorStop(0.7, '#d9b5ff');
+  g.addColorStop(1, '#f3c9f0');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  rnd = 21;
+  for (let i = 0; i < 18; i++) {
+    const x = rand() * w, y = rand() * h, r = 80 + rand() * 220;
+    const rg = ctx.createRadialGradient(x, y, 0, x, y, r);
+    rg.addColorStop(0, `rgba(255,255,255,${0.2 + rand() * 0.3})`);
+    rg.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = rg;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+}
+function stageBg(ctx, w, h) {
+  ctx.fillStyle = '#07070c';
+  ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [k, a, col] of [[0.15, 0.25, '180,190,255'], [0.5, 0, '255,255,255'], [0.85, -0.25, '210,170,255']]) {
+    const x = w * k;
+    const bg = ctx.createLinearGradient(x, 0, x + a * h, h);
+    bg.addColorStop(0, `rgba(${col},0.35)`);
+    bg.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.moveTo(x - 30, 0);
+    ctx.lineTo(x + 30, 0);
+    ctx.lineTo(x + a * h + w * 0.3, h);
+    ctx.lineTo(x + a * h - w * 0.3, h);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+async function themeCuts(ctx, th, imgs, o, n, style) {
+  const A = await rsAssets(o);
+  const W = th.w, H = th.h, last = th.cells[th.cells.length - 1];
+  const fy0 = last[1] + last[3], fy = (fy0 + H) / 2;
+  const one = n === 1;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  if (style === 'holo') {
+    holoBg(ctx, W, H);
+    th.cells.forEach((c) => { ctx.beginPath(); ctx.roundRect(c[0] - 12, c[1] - 12, c[2] + 24, c[3] + 24, th.r + 12); ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill(); });
+    cellsDraw(ctx, th, imgs);
+    if (one) cutInCell(ctx, th, 0, A.cut1, 'r', 0.9);
+    else { cutInCell(ctx, th, 0, A.cut1, 'r', 0.95); cutInCell(ctx, th, 1, A.cut2, 'l', 1.0); }
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(W / 2 - 160, 75 - 42, 320, 84, 42);
+    ctx.fill();
+    ctx.fillStyle = '#8a2fb0';
+    ctx.font = `800 46px ${FONT}`;
+    ctx.fillText('전역까지', W / 2, 76);
+    if (one) {
+      ctx.textAlign = 'left';
+      ctx.font = `900 84px ${FONT}`;
+      ctx.fillText(String(o.dday), 70, fy);
+      ctx.textAlign = 'center';
+      penText(ctx, ['원이 p.s. 행복하세요'], W / 2 + 120, fy, 54, '#8a2fb0', ['#ffffff', 10], -2);
+      ctx.textAlign = 'right';
+      ctx.font = `700 34px ui-monospace, Menlo, monospace`;
+      ctx.fillText(o.date, W - 70, fy);
+    } else {
+      ctx.font = `900 120px ${FONT}`;
+      ctx.fillText(String(o.dday), W / 2, fy - 50);
+      penText(ctx, ['리브 p.s. 행복하세요'], W / 2, fy + 50, 54, '#8a2fb0', ['#ffffff', 10], -2);
+      ctx.globalAlpha = 0.7;
+      ctx.font = `700 34px ui-monospace, Menlo, monospace`;
+      ctx.fillText(o.date, W / 2, fy + 115);
+      ctx.globalAlpha = 1;
+    }
+    for (const [x, y] of [[90, 70], [W - 90, 80], [W - 40, H / 2]]) sparkle(ctx, x, y, 28, '#ffffff');
+  } else if (style === 'night') {
+    nightBg(ctx, W, H);
+    th.cells.forEach((c) => { ctx.save(); ctx.shadowColor = 'rgba(170,200,255,0.9)'; ctx.shadowBlur = 30; ctx.beginPath(); ctx.roundRect(c[0] - 6, c[1] - 6, c[2] + 12, c[3] + 12, th.r + 6); ctx.fillStyle = '#dfe8ff'; ctx.fill(); ctx.restore(); });
+    cellsDraw(ctx, th, imgs);
+    if (one) cutInCell(ctx, th, 0, A.cut3, 'r', 0.9);
+    else { cutInCell(ctx, th, 0, A.cut2, 'l', 0.95); cutInCell(ctx, th, 1, A.cut3, 'r', 0.95); }
+    ctx.save();
+    ctx.shadowColor = '#9fc0ff';
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `200 60px "Didot", "Times New Roman", serif`;
+    ctx.fillText('전역까지', W / 2, 78);
+    ctx.font = `300 ${one ? 90 : 130}px "Didot", "Times New Roman", serif`;
+    ctx.fillText(String(o.dday), W / 2, one ? fy : fy - 30);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(220,230,255,0.8)';
+    ctx.font = `400 34px ui-monospace, Menlo, monospace`;
+    if (one) { ctx.textAlign = 'right'; ctx.fillText(o.date, W - 70, fy); ctx.textAlign = 'left'; ctx.fillText('My D-day', 70, fy); }
+    else ctx.fillText(o.date, W / 2, fy + 90);
+    for (const [x, y] of [[100, 76], [W - 100, 76]]) sparkle(ctx, x, y, 26, '#ffffff');
+  } else if (style === 'leopard') {
+    leopard(ctx, W, H, '#e2a45f', '#2a1a10', '#b77a3c', 31, 1.2);
+    pinkCellBorders(ctx, th, '#ff4fa3');
+    cellsDraw(ctx, th, imgs);
+    outlineCells(ctx, th);
+    if (one) cutInCell(ctx, th, 0, A.gc6, 'r', 0.95);
+    else { cutInCell(ctx, th, 0, A.gc3, 'l', 0.98); cutInCell(ctx, th, 1, A.gc5, 'r', 0.98); }
+    y2kText(ctx, '전역까지', W / 2, 78, 90, '#ff4fa3', -2);
+    if (one) {
+      y2kText(ctx, String(o.dday), 260, fy, 84, '#ff4fa3', -3);
+      penText(ctx, ['야호-!'], W / 2, fy, 64, '#ffffff', [INK, 10], -3);
+      penText(ctx, [o.date], W - 220, fy, 50, '#ffffff', [INK, 10]);
+    } else {
+      y2kText(ctx, String(o.dday), W / 2 - 80, fy - 20, 150, '#ff4fa3', -3);
+      bubble(ctx, W - 210, fy - 50, 220, 120, ['야호-!'], 58, [-60, 35, -100, 80, -10, 55]);
+      penText(ctx, [o.date], W / 2, fy + 100, 50, '#ffffff', [INK, 10]);
+    }
+    for (const [x, y, r, c] of [[90, 80, 36, '#ffe14a'], [W - 90, 80, 32, '#ff9ad0']]) star5(ctx, x, y, r, c);
+  } else if (style === 'stage') {
+    stageBg(ctx, W, H);
+    th.cells.forEach((c) => { ctx.beginPath(); ctx.roundRect(c[0] - 4, c[1] - 4, c[2] + 8, c[3] + 8, th.r + 4); ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 3; ctx.stroke(); });
+    cellsDraw(ctx, th, imgs);
+    cutInCell(ctx, th, th.cells.length - 1, A.stage, 'r', one ? 0.75 : 0.9);
+    if (!one) cutInCell(ctx, th, 0, A.cut1, 'l', 0.95);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `800 52px ${FONT}`;
+    ctx.fillText('전역까지 ' + o.dday, W / 2, 78);
+    ecg(ctx, 60, W / 2 - 260, 78, 24, 'rgba(255,255,255,0.8)', 3);
+    ecg(ctx, W / 2 + 260, W - 60, 78, 24, 'rgba(255,255,255,0.8)', 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.font = `600 34px ui-monospace, Menlo, monospace`;
+    ctx.fillText(o.date, W / 2, fy);
+    if (!one) ecg(ctx, 100, W - 100, fy + 70, 30, 'rgba(200,190,255,0.8)', 3);
+  } else if (style === 'doodle') {
+    ctx.fillStyle = '#c6f39b';
+    ctx.fillRect(0, 0, W, H);
+    cellsDraw(ctx, th, imgs);
+    th.cells.forEach((c) => { ctx.beginPath(); ctx.roundRect(c[0], c[1], c[2], c[3], th.r); stroke(ctx, 5); });
+    penText(ctx, ['전역까지'], W / 2 - 120, 80, 92, '#ff4fa3', ['#ffffff', 12], -3);
+    heart(ctx, W / 2 + 130, 80, 50, '#ffb3c8', 6);
+    penText(ctx, [String(o.dday)], W / 2 + 130, 82, 64, '#ffe14a', [INK, 8], -2);
+    const a = await charImg('a', 'animal', { arm: 30, darm: -40 });
+    const b = await charImg('b', 'military', { arm: -20 });
+    const lc = th.cells[th.cells.length - 1];
+    drawChar(ctx, a, lc[0] + lc[2] - 90, lc[1] + lc[3] - 120, 300, -6);
+    drawChar(ctx, b, th.cells[0][0] + 80, th.cells[0][1] + 30, 200, 8);
+    if (one) {
+      burst(ctx, W - 230, fy, 150, 70, '#ffe14a', -4);
+      penText(ctx, ['전역 축하해요'], W - 230, fy, 44, INK, null, -4);
+      penText(ctx, [o.date], 200, fy, 48, INK);
+      bubble(ctx, W / 2, fy, 260, 110, ['꿀빨아?!'], 50, null);
+    } else {
+      bubble(ctx, 250, fy - 20, 300, 170, ['그렇게!', '버티면!', '전역 될 일!'], 38, [100, -50, 160, -90, 130, -30]);
+      burst(ctx, W - 250, fy - 10, 190, 100, '#ffe14a', -8);
+      penText(ctx, ['전역', '축하해요'], W - 250, fy - 10, 50, INK, null, -8);
+      penText(ctx, [o.date], W / 2, fy + 90, 50, INK);
+    }
+    rnd = 7;
+    for (const [x, y, k] of [[60, 70, 's'], [W - 60, 70, 'h'], [30, H / 2, 'c'], [W - 30, H / 2 + 60, 's'], [W / 2, H - 30, 'h']]) {
+      if (k === 's') sparkle(ctx, x, y, 30);
+      else if (k === 'h') heart(ctx, x, y, 26, '#ff4fa3', rand() * 30 - 15);
+      else clover(ctx, x, y, 28, 10);
+    }
+  } else if (style === 'greenstrip') {
+    ctx.fillStyle = '#fbf6e8';
+    ctx.fillRect(0, 0, W, H);
+    ctx.beginPath();
+    ctx.roundRect(20, 20, W - 40, H - 40, 44);
+    ctx.fillStyle = '#5fbf4a';
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = '#4aa83a';
+    for (let y = 150; y < H + 300; y += 420) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.bezierCurveTo(W * 0.25, y - 160, W * 0.6, y + 220, W, y - 60);
+      ctx.lineTo(W, y + 40);
+      ctx.bezierCurveTo(W * 0.6, y + 300, W * 0.25, y - 60, 0, y + 110);
+      ctx.fill();
+    }
+    rnd = 3;
+    for (let i = 0; i < W * H / 40000; i++) {
+      ctx.beginPath();
+      ctx.arc(30 + rand() * (W - 60), 30 + rand() * (H - 60), 6 + rand() * 9, 0, Math.PI * 2);
+      ctx.fillStyle = rand() > 0.75 ? '#ff9a2e' : '#ffffff';
+      ctx.fill();
+    }
+    ctx.restore();
+    th.cells.forEach((c) => { ctx.beginPath(); ctx.roundRect(c[0] - 12, c[1] - 12, c[2] + 24, c[3] + 24, th.r + 10); ctx.fillStyle = '#ffffff'; ctx.fill(); });
+    cellsDraw(ctx, th, imgs);
+    const title = one ? '전역한컷' : '전역두컷';
+    const cols = ['#ff4a3d', '#ffb21e', '#3d8bff', '#ff5fa2'];
+    ctx.font = `110px ${PEN}`;
+    let tx = W / 2 - ctx.measureText(title).width / 2;
+    ctx.textAlign = 'left';
+    [...title].forEach((ch, i) => {
+      ctx.save();
+      ctx.translate(tx, 85);
+      ctx.rotate(((i % 2) ? 4 : -4) * Math.PI / 180);
+      ctx.lineWidth = 14;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineJoin = 'round';
+      ctx.strokeText(ch, 0, 0);
+      ctx.fillStyle = cols[i];
+      ctx.fillText(ch, 0, 0);
+      ctx.restore();
+      tx += ctx.measureText(ch).width;
+    });
+    ctx.textAlign = 'center';
+    const pk = await charImg('a', 'military', { arm: -60, darm: -70 });
+    drawChar(ctx, pk, th.cells[0][0] + th.cells[0][2] + 10, th.cells[0][1] + 200, 200, 22);
+    const big = await charImg('b', 'hoodie', { arm: 20, darm: -60 });
+    if (one) {
+      penText(ctx, [String(o.dday)], 230, fy, 90, '#ffe14a', ['#2f7d24', 12], -3);
+      penText(ctx, ['버텨라'], W / 2, fy, 70, '#ffffff', ['#2f7d24', 10], 3);
+      penText(ctx, [o.date], W - 230, fy, 48, '#ffffff', ['#2f7d24', 8]);
+    } else {
+      penText(ctx, ['버텨라'], 300, th.cells[0][1] + th.cells[0][3] + 32, 64, '#ffffff', ['#2f7d24', 10], -3);
+      penText(ctx, [String(o.dday)], W / 2 - 80, fy - 20, 140, '#ffe14a', ['#2f7d24', 14], -3);
+      penText(ctx, [o.date], W / 2 - 80, fy + 90, 48, '#ffffff', ['#2f7d24', 8]);
+      drawChar(ctx, big, W - 170, fy, 260, 0);
+    }
+    for (const [x, y] of [[60, 60], [W - 60, 70], [50, H - 60]]) sparkle(ctx, x, y, 26, '#ffffff');
+  } else if (style === 'sign') {
+    holoBg(ctx, W, H);
+    th.cells.forEach((c) => { ctx.beginPath(); ctx.roundRect(c[0] - 12, c[1] - 12, c[2] + 24, c[3] + 24, 130); ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill(); });
+    th.cells.forEach((c, i) => drawCover(ctx, imgs[i], c[0], c[1], c[2], c[3], 120));
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(W / 2 - 150, 36, 300, 80, 40);
+    ctx.fill();
+    ctx.fillStyle = '#9b3fb8';
+    ctx.font = `800 44px ${FONT}`;
+    ctx.fillText('전역까지', W / 2, 77);
+    const signs = [['원이 p.s.', '행복하세요'], ['미나미 p.s.', '행복하세요']];
+    th.cells.forEach((c, i) => penText(ctx, signs[i], i % 2 ? c[0] + c[2] - 170 : c[0] + 170, c[1] + c[3] - 70, 58, '#8a2fb0', ['#ffffff', 10], i % 2 ? 6 : -6));
+    if (one) {
+      ctx.textAlign = 'left';
+      ctx.font = `900 80px ${FONT}`;
+      ctx.fillText(String(o.dday), 70, fy);
+      ctx.textAlign = 'center';
+      penText(ctx, ['제나 p.p. 행복하세요'], W / 2 + 80, fy, 54, '#8a2fb0', ['#ffffff', 10], -2);
+      ctx.textAlign = 'right';
+      ctx.font = `700 34px ui-monospace, Menlo, monospace`;
+      ctx.fillText(o.date, W - 70, fy);
+      ctx.textAlign = 'center';
+    } else {
+      ctx.font = `900 120px ${FONT}`;
+      ctx.fillText(String(o.dday), W / 2, fy - 50);
+      penText(ctx, ['메이 p.s. 행복하세요'], W / 2, fy + 55, 54, '#8a2fb0', ['#ffffff', 10], -2);
+      ctx.globalAlpha = 0.7;
+      ctx.font = `700 34px ui-monospace, Menlo, monospace`;
+      ctx.fillText(o.date, W / 2, fy + 120);
+      ctx.globalAlpha = 1;
+    }
+    heart(ctx, W - 70, 80, 30, '#ff7fc4', 12);
+    for (const [x, y] of [[80, 76], [W - 40, H / 2], [40, H - 80]]) sparkle(ctx, x, y, 28, '#ffffff');
+  } else if (style === 'rescene') {
+    holoBg(ctx, W, H);
+    th.cells.forEach((c) => { ctx.beginPath(); ctx.roundRect(c[0] - 12, c[1] - 12, c[2] + 24, c[3] + 24, 102); ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill(); });
+    th.cells.forEach((c, i) => drawCover(ctx, imgs[i], c[0], c[1], c[2], c[3], 90));
+    const thr = Object.assign({}, th, { r: 90 });
+    if (one) cutInCell(ctx, thr, 0, A.cut3, 'r', 0.92);
+    else { cutInCell(ctx, thr, 0, A.cut2, 'l', 1.0); cutInCell(ctx, thr, 1, A.cut1, 'r', 0.95); }
+    polaroid(ctx, A.photo1, th.cells[0][0] + 150, th.cells[0][1] + (one ? 640 : 520), one ? 230 : 200, -7);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(W / 2 - 150, 36, 300, 80, 40);
+    ctx.fill();
+    ctx.fillStyle = '#8a2fb0';
+    ctx.font = `800 44px ${FONT}`;
+    ctx.fillText('전역까지', W / 2, 77);
+    if (one) {
+      ctx.textAlign = 'left';
+      ctx.font = `900 80px ${FONT}`;
+      ctx.fillText(String(o.dday), 70, fy);
+      ctx.textAlign = 'center';
+      for (let i = 0; i < 5; i++) polaroid(ctx, A['mini' + (i + 1)], 560 + i * 130, fy - 10, 90, [-6, 4, -3, 5, -5][i]);
+      ctx.textAlign = 'right';
+      ctx.font = `700 32px ui-monospace, Menlo, monospace`;
+      ctx.fillText(o.date, W - 60, fy);
+      ctx.textAlign = 'center';
+    } else {
+      for (let i = 0; i < 5; i++) polaroid(ctx, A['mini' + (i + 1)], 200 + i * 200, fy - 65, 105, [-6, 4, -3, 5, -5][i]);
+      ctx.font = `900 72px ${FONT}`;
+      ctx.fillText(String(o.dday), W / 2, fy + 62);
+      ctx.globalAlpha = 0.7;
+      ctx.font = `700 28px ui-monospace, Menlo, monospace`;
+      ctx.fillText(o.date, W / 2, fy + 115);
+      ctx.globalAlpha = 1;
+    }
+    for (const [x, y] of [[90, 76], [W - 90, 80]]) sparkle(ctx, x, y, 28, '#ffffff');
+  } else if (style === 'diary') {
+    ctx.fillStyle = '#fdfbf4';
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#b9d3f0';
+    ctx.lineWidth = 2;
+    for (let y = 60; y < H; y += 56) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+    ctx.strokeStyle = '#f2a0a8';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(36, 0); ctx.lineTo(36, H); ctx.stroke();
+    th.cells.forEach((c, i) => {
+      ctx.save();
+      ctx.translate(c[0] + c[2] / 2, c[1] + c[3] / 2);
+      ctx.rotate((i % 2 ? 0.7 : -0.7) * Math.PI / 180);
+      ctx.shadowColor = 'rgba(0,0,0,0.18)'; ctx.shadowBlur = 14; ctx.shadowOffsetY = 5;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-c[2] / 2 - 14, -c[3] / 2 - 14, c[2] + 28, c[3] + 28);
+      ctx.restore();
+    });
+    const thr = Object.assign({}, th, { r: 4 });
+    cellsDraw(ctx, thr, imgs);
+    cutInCell(ctx, thr, th.cells.length - 1, A.cut1, 'r', 0.95);
+    const tapes = ['rgba(255,190,205,0.85)', 'rgba(190,220,255,0.85)', 'rgba(255,230,150,0.85)'];
+    th.cells.forEach((c, i) => { tape(ctx, c[0] + 40, c[1] - 4, 160, -32, tapes[i]); tape(ctx, c[0] + c[2] - 40, c[1] - 4, 160, 32, tapes[i + 1]); });
+    penText(ctx, ['전역 일기'], 230, 82, 90, '#2c3a8a', null, -3);
+    penText(ctx, [o.date + ' 맑음'], W - 220, 88, 48, '#555555');
+    if (one) {
+      penText(ctx, ['오늘의 남은 날'], 260, fy, 50, '#2c3a8a');
+      penText(ctx, [String(o.dday)], W / 2 + 40, fy, 100, '#e2486a', ['#ffffff', 10], -3);
+      ctx.beginPath(); ctx.ellipse(W / 2 + 40, fy, 160, 62, -0.05, 0, Math.PI * 2); ctx.strokeStyle = '#e2486a'; ctx.lineWidth = 4; ctx.stroke();
+      penText(ctx, ['원이 p.s. 행복하세요'], W - 250, fy, 44, '#2c3a8a');
+    } else {
+      penText(ctx, ['오늘의 남은 날'], W / 2, fy - 90, 50, '#2c3a8a', null, 2);
+      penText(ctx, [String(o.dday)], W / 2, fy + 10, 140, '#e2486a', ['#ffffff', 12], -3);
+      ctx.beginPath(); ctx.ellipse(W / 2, fy + 10, 200, 85, -0.05, 0, Math.PI * 2); ctx.strokeStyle = '#e2486a'; ctx.lineWidth = 5; ctx.stroke();
+      penText(ctx, ['원이 p.s. 행복하세요'], W / 2, fy + 110, 46, '#2c3a8a');
+      polaroid(ctx, A.mini1, 150, fy - 10, 150, -7);
+    }
+  } else if (style === 'film') {
+    ctx.fillStyle = '#141414';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#f2ead8';
+    for (let y = 20; y < H - 20; y += 70) { ctx.beginPath(); ctx.roundRect(12, y, 34, 30, 5); ctx.roundRect(W - 46, y, 34, 30, 5); ctx.fill(); }
+    const thr = Object.assign({}, th, { r: 6 });
+    cellsDraw(ctx, thr, imgs);
+    cutInCell(ctx, thr, 0, one ? A.cut3 : A.cut1, one ? 'r' : 'l', 0.9);
+    if (!one) cutInCell(ctx, thr, 1, A.cut3, 'r', 0.9);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ff9a2e';
+    ctx.font = `700 28px ui-monospace, Menlo, monospace`;
+    th.cells.forEach((c, i) => ctx.fillText(`${i + 1}A  JEONYEOK 400`, c[0], c[1] + c[3] + 22));
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#f2ead8';
+    ctx.font = `800 50px ${FONT}`;
+    ctx.fillText('전역까지', W / 2, 80);
+    if (one) {
+      ctx.font = `900 80px ${FONT}`;
+      ctx.fillText(String(o.dday), W / 2, fy + 20);
+      ctx.fillStyle = '#ff9a2e';
+      ctx.font = `700 30px ui-monospace, Menlo, monospace`;
+      ctx.textAlign = 'right';
+      ctx.fillText(o.date.replaceAll('.', ' '), W - 70, fy + 20);
+      ctx.textAlign = 'center';
+    } else {
+      for (let i = 0; i < 5; i++) {
+        const x = 60 + i * 216;
+        ctx.save(); ctx.beginPath(); ctx.roundRect(x, fy - 115, 180, 120, 6); ctx.clip();
+        const im = A['mini' + (i + 1)];
+        const s = Math.max(180 / im.naturalWidth, 120 / im.naturalHeight);
+        ctx.drawImage(im, x + 90 - im.naturalWidth * s / 2, fy - 55 - im.naturalHeight * s / 2, im.naturalWidth * s, im.naturalHeight * s);
+        ctx.restore();
+      }
+      ctx.fillStyle = '#f2ead8';
+      ctx.font = `900 80px ${FONT}`;
+      ctx.fillText(String(o.dday), W / 2, fy + 60);
+      ctx.fillStyle = '#ff9a2e';
+      ctx.font = `700 28px ui-monospace, Menlo, monospace`;
+      ctx.fillText(o.date.replaceAll('.', ' '), W / 2, fy + 115);
+    }
+  } else if (style === 'sweater') {
+    ctx.fillStyle = '#6b3f2a';
+    ctx.fillRect(0, 0, W, H);
+    const band = (y) => {
+      ctx.fillStyle = '#f4ead6';
+      ctx.fillRect(0, y, W, 50);
+      ctx.fillStyle = '#c8322f';
+      for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, y + 25); ctx.lineTo(x + 20, y + 6); ctx.lineTo(x + 40, y + 25); ctx.lineTo(x + 20, y + 44); ctx.fill(); }
+    };
+    band(0);
+    band(H - 50);
+    rnd = 9;
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    for (let i = 0; i < W * H / 20000; i++) { ctx.beginPath(); ctx.arc(rand() * W, 50 + rand() * (H - 100), 3 + rand() * 6, 0, Math.PI * 2); ctx.fill(); }
+    th.cells.forEach((c) => { ctx.beginPath(); ctx.roundRect(c[0] - 10, c[1] - 10, c[2] + 20, c[3] + 20, th.r + 10); ctx.fillStyle = '#f4ead6'; ctx.fill(); });
+    cellsDraw(ctx, th, imgs);
+    cutInCell(ctx, th, th.cells.length - 1, A.cut1, 'r', 0.88);
+    if (!one) cutInCell(ctx, th, 0, A.cut2, 'l', 0.92);
+    penText(ctx, ['전역까지 ' + o.dday], W / 2, 102, 66, '#f4ead6', ['#6b3f2a', 10], -1);
+    if (one) {
+      polaroid(ctx, A.photo1, 150, fy - 120, 190, -6);
+      penText(ctx, ['메이 p.s. 행복하세요'], W / 2, fy - 8, 46, '#f4ead6', ['#6b3f2a', 8], -2);
+      penText(ctx, [o.date], W - 200, fy - 8, 44, '#f4ead6', ['#6b3f2a', 8]);
+    } else {
+      polaroid(ctx, A.photo1, W - 190, fy - 70, 220, 5);
+      penText(ctx, ['메이 p.s.', '행복하세요'], 300, fy - 40, 54, '#f4ead6', ['#6b3f2a', 8], -2);
+      penText(ctx, [o.date], 300, fy + 70, 44, '#f4ead6', ['#6b3f2a', 8]);
+    }
+  } else if (style === 'pulse') {
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, '#cfe0ff'); g.addColorStop(0.5, '#e6dcff'); g.addColorStop(1, '#bcd2ff');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-100, 200 + i * 400);
+      ctx.bezierCurveTo(W * 0.3, -100 + i * 380, W * 0.7, 700 + i * 200, W + 100, 150 + i * 400);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 26 + i * 8; ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 40;
+      ctx.stroke();
+    }
+    ctx.restore();
+    th.cells.forEach((c) => { ctx.save(); ctx.shadowColor = 'rgba(120,120,255,0.5)'; ctx.shadowBlur = 30; ctx.beginPath(); ctx.roundRect(c[0] - 10, c[1] - 10, c[2] + 20, c[3] + 20, th.r + 10); ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fill(); ctx.restore(); });
+    cellsDraw(ctx, th, imgs);
+    const lc = th.cells[th.cells.length - 1];
+    const pw = lc[2], ph = A.pulse.naturalHeight * pw / A.pulse.naturalWidth;
+    ctx.drawImage(A.pulse, lc[0], lc[1] + lc[3] + 10, pw, ph);
+    ctx.fillStyle = '#5b4bb8';
+    ctx.font = `italic 400 66px "Didot", "Times New Roman", serif`;
+    ctx.fillText('전역까지', W / 2, 80);
+    ecg(ctx, 60, W / 2 - 200, 80, 34, '#7d6be0', 4);
+    ecg(ctx, W / 2 + 200, W - 60, 80, 34, '#7d6be0', 4);
+    const dy = lc[1] + lc[3] + 10 + ph + 40;
+    ctx.save();
+    ctx.shadowColor = 'rgba(90,70,200,0.6)'; ctx.shadowBlur = 20;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `italic 400 ${one ? 120 : 110}px "Didot", "Times New Roman", serif`;
+    ctx.fillText(String(o.dday), W / 2, dy);
+    ctx.restore();
+    ecg(ctx, 120, W - 120, dy + 90, 22, '#7d6be0', 3);
+    ctx.fillStyle = '#e6dcff';
+    ctx.fillRect(W / 2 - 150, dy + 68, 300, 44);
+    ctx.fillStyle = '#5b4bb8';
+    ctx.font = `600 32px ui-monospace, Menlo, monospace`;
+    ctx.fillText(o.date, W / 2, dy + 90);
+  } else if (style === 'gypink' || style === 'gywhite') {
+    const pink = style === 'gypink';
+    if (pink) leopard(ctx, W, H, '#ff6fb5', '#2a0c1c', '#e0408f', 47, 1.0);
+    else leopard(ctx, W, H, '#f1eeea', '#3a3a3a', '#d3cfca', 59, 0.9);
+    pinkCellBorders(ctx, th, pink ? '#ffffff' : '#ff8ac4');
+    cellsDraw(ctx, th, imgs);
+    outlineCells(ctx, th);
+    if (pink) { cutInCell(ctx, th, th.cells.length - 1, A.gc2, 'r', 0.98); if (!one) cutInCell(ctx, th, 0, A.gc5, 'l', 0.98); }
+    else { cutInCell(ctx, th, th.cells.length - 1, A.gc3, 'r', 0.95); if (!one) cutInCell(ctx, th, 0, A.gc5, 'l', 0.95); }
+    y2kText(ctx, pink ? '전역까지 ' + o.dday : '전역까지', W / 2, 80, 80, pink ? '#ffe14a' : '#ff4fa3', -1);
+    if (one) {
+      if (pink) {
+        polaroid(ctx, A.car1, 170, fy - 40, 190, -5);
+        penText(ctx, ['갸루 모드 ON'], W / 2, fy, 56, '#ffffff', [INK, 10], 2);
+        penText(ctx, [o.date], W - 220, fy, 48, '#ffffff', [INK, 10]);
+      } else {
+        y2kText(ctx, String(o.dday), 250, fy, 84, '#ff4fa3', -3);
+        penText(ctx, ['파라파라나 추고 있어야겠다'], W / 2 + 120, fy, 52, INK, ['#ffffff', 10], -2);
+        penText(ctx, [o.date], W - 160, fy, 40, INK, ['#ffffff', 8]);
+      }
+    } else {
+      if (pink) {
+        polaroid(ctx, A.car1, 220, fy - 20, 220, -5);
+        penText(ctx, ['갸루 모드 ON'], W - 300, fy - 40, 64, '#ffffff', [INK, 10], 2);
+        penText(ctx, [o.date], W - 300, fy + 60, 48, '#ffffff', [INK, 10]);
+      } else {
+        y2kText(ctx, String(o.dday), W / 2, fy - 40, 130, '#ff4fa3', -3);
+        penText(ctx, ['파라파라나 추고 있어야겠다'], W / 2, fy + 70, 52, INK, ['#ffffff', 10], -2);
+        penText(ctx, [o.date], W / 2, fy + 125, 40, INK, ['#ffffff', 8]);
+      }
+    }
+    for (const [x, y, r, c] of [[80, 80, 34, '#ffe14a'], [W - 80, 80, 34, pink ? '#ffffff' : '#ff8ac4']]) star5(ctx, x, y, r, c);
+  } else if (style === 'gypolaroid') {
+    leopard(ctx, W, H, '#c98a4b', '#1d120a', '#a8692f', 73, 1.1);
+    const caps = ['야호-!', '꿀빨아?!'];
+    th.cells.forEach((c, i) => {
+      const w = c[2] - 60, h = c[3] - 60;
+      ctx.save();
+      ctx.translate(c[0] + c[2] / 2, c[1] + c[3] / 2 - 20);
+      ctx.rotate((i % 2 ? 2.5 : -2.5) * Math.PI / 180);
+      ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-w / 2 - 24, -h / 2 - 24, w + 48, h + 100);
+      ctx.shadowColor = 'transparent';
+      drawCover(ctx, imgs[i], -w / 2, -h / 2, w, h, 4);
+      penText(ctx, [caps[i]], 0, h / 2 + 40, 48, INK);
+      ctx.restore();
+      tape(ctx, c[0] + c[2] / 2, c[1] + 10, 200, i % 2 ? 6 : -8, i % 2 ? 'rgba(255,230,120,0.85)' : 'rgba(255,120,190,0.85)');
+    });
+    const g4 = A.gc4, gh = one ? 420 : 380;
+    stickerDraw(ctx, g4, W - gh * g4.naturalWidth / g4.naturalHeight - 10, H - gh + 20, gh * g4.naturalWidth / g4.naturalHeight, gh);
+    y2kText(ctx, '전역까지 ' + o.dday, W / 2, 70, 76, '#ff4fa3', -2);
+    penText(ctx, [o.date], 200, H - 60, 46, '#ffffff', [INK, 10]);
+    for (const [x, y, r, c] of [[70, 70, 32, '#ffe14a'], [W - 70, 70, 32, '#ff9ad0']]) star5(ctx, x, y, r, c);
+  }
+}
+
+async function frameTheme(o) {
+  const cm = /^c([12])-(\w+)$/.exec(o.theme);
+  const th = cm ? cutLayout(Number(cm[1]), cm[2]) : THEMES[o.theme];
+  await document.fonts.load(`60px "JY Pen"`, '전역');
+  await document.fonts.load(`60px "JY Pen"`, 'D-0123456789.');
+  const imgs = [];
+  for (const s of o.shots) imgs.push(await loadImg(s));
+  const c = document.getElementById('c');
+  c.width = th.w;
+  c.height = th.h;
+  const ctx = c.getContext('2d');
+  if (cm) await themeCuts(ctx, th, imgs, o, Number(cm[1]), cm[2]);
+  else if (o.theme === 'doodle') await themeDoodle(ctx, th, imgs, o);
+  else if (o.theme === 'greenstrip') await themeGreenStrip(ctx, th, imgs, o);
+  else if (o.theme === 'rescene') await themeRescene(ctx, th, imgs, o);
+  else if (o.theme === 'gystrip') await themeGyStrip(ctx, th, imgs, o);
+  else if (o.theme === 'gygrid') await themeGyGrid(ctx, th, imgs, o);
+  else if (o.theme === 'gybig') await themeGyBig(ctx, th, imgs, o);
+  else if (o.theme === 'gyscatter') await themeGyScatter(ctx, th, imgs, o);
+  else if (o.theme === 'rspulse') await themePulse(ctx, th, imgs, o);
+  else if (o.theme === 'rsstage') await themeStage(ctx, th, imgs, o);
+  else if (o.theme === 'rsnight') await themeNight(ctx, th, imgs, o);
+  else if (o.theme === 'rsdiary') await themeDiary(ctx, th, imgs, o);
+  else if (o.theme === 'rsfilm') await themeFilm(ctx, th, imgs, o);
+  else if (o.theme === 'rssweater') await themeSweater(ctx, th, imgs, o);
+  else await themeHolo(ctx, th, imgs, o);
+  return c.toDataURL('image/png');
+}
+window.frameTheme = frameTheme;
+window.frameImage = frameImage;
+window.frameFour = frameFour;
+window.frameFixed = frameFixed;
+</script>
+</body>
+</html>

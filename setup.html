@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>전역일 설정</title>
+<style>
+  body { margin: 0; padding: 28px; font-family: -apple-system, "Apple SD Gothic Neo", sans-serif; background: #f3efe4; color: #2b2a24; }
+  h1 { font-size: 18px; margin: 0 0 20px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+  .hint { font-weight: 400; color: #7a7566; }
+  input { width: 100%; box-sizing: border-box; padding: 9px 10px; font-size: 14px; border: 2px solid #2b2a24; border-radius: 8px; background: #fff; }
+  button { margin-top: 24px; width: 100%; padding: 11px; font-size: 15px; font-weight: 700; border: 2px solid #2b2a24; border-radius: 8px; background: #6b7a3a; color: #fff; cursor: pointer; }
+  button:active { transform: translateY(1px); }
+  .err { color: #b3261e; font-size: 13px; min-height: 18px; margin-top: 8px; }
+</style>
+</head>
+<body>
+  <h1>전역일 설정</h1>
+  <label for="discharge">전역일</label>
+  <input id="discharge" type="date">
+  <label for="enlist">입대일 <span class="hint">(선택, 넣으면 진행률로도 놀림)</span></label>
+  <input id="enlist" type="date">
+  <label for="name">놀릴 사람 이름 <span class="hint">(선택)</span></label>
+  <input id="name" type="text" maxlength="12" placeholder="비우면 '너'">
+  <div class="err" id="err"></div>
+  <button id="save">저장하고 풀어놓기</button>
+<script>
+  const $ = (id) => document.getElementById(id);
+  window.api.getConfig().then((cfg) => {
+    if (!cfg) return;
+    $('discharge').value = cfg.discharge || '';
+    $('enlist').value = cfg.enlist || '';
+    $('name').value = cfg.name || '';
+  });
+  $('save').addEventListener('click', () => {
+    const discharge = $('discharge').value;
+    const enlist = $('enlist').value;
+    if (!discharge) { $('err').textContent = '전역일을 넣어줘.'; return; }
+    if (enlist && enlist >= discharge) { $('err').textContent = '입대일이 전역일보다 늦을 수는 없음.'; return; }
+    window.api.saveConfig({ discharge, enlist: enlist || null, name: $('name').value.trim() || null });
+  });
+</script>
+</body>
+</html>

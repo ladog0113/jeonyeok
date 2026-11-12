@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>얼굴 맞추기</title>
+<link rel="stylesheet" href="face-editor.css">
+<style>body { margin: 0; padding: 20px; background: #f3efe4; }</style>
+</head>
+<body>
+<div id="root"></div>
+<script>window.CUTOUT_BASE = 'jy://mp/';</script>
+<script src="character.js"></script>
+<script src="cutout.js"></script>
+<script src="face-editor.js"></script>
+<script>
+window.api.editorInit().then((d) => {
+  if (!d) return;
+  mountFaceEditor(document.getElementById('root'), {
+    slot: d.slot,
+    name: d.name,
+    url: d.dataUrl,
+    params: d.params,
+    onSave: (p, cutUrl) => window.api.editorSave(p, cutUrl),
+    onCancel: () => window.api.editorCancel(),
+    onRepick: () => window.api.editorRepick(),
+  });
+});
+</script>
+</body>
+</html>
