@@ -101,7 +101,7 @@ function menuItems() {
 function start(changed) {
   onChange = changed || onChange;
   setTimeout(() => check(false), 8000);
-  setInterval(() => check(false), 6 * 60 * 60 * 1000);
+  setInterval(() => check(false), 30 * 60 * 1000);
 }
 
 module.exports = { start, check, install, menuItems, hasUpdate: () => !!state.latest };
