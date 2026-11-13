@@ -62,5 +62,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           V=${{ steps.v.outputs.version }}
-          NOTES=$(git log -1 --pretty=%B)
+          NOTES=$(node -e "const c=require('./changelog.json').find(e=>e.version==='$V'); console.log(c ? c.items.map(i=>'- '+i).join('\\n') : '')")
+          [ -z "$NOTES" ] && NOTES=$(git log -1 --pretty=%B)
           gh release create "v$V" Jeonyeok-mac.zip jeonyeok-live.zip --title "v$V" --notes "$NOTES"

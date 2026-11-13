@@ -1,6 +1,6 @@
 {
   "name": "jeonyeok-dday",
-  "version": "2.9.0",
+  "version": "2.10.0",
   "description": "전역 D-day 데스크톱 펫",
   "main": "bootstrap.js",
   "scripts": {

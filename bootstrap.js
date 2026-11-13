@@ -25,7 +25,6 @@ try {
   if (newer(pj.version, bundled) && fs.existsSync(path.join(live, 'main.js'))) {
     require(path.join(live, 'main.js'));
     started = true;
-    log(`start live ${pj.version} (bundle ${bundled})`);
   }
 } catch (e) {
   if (e && e.code !== 'ENOENT') log('live start failed: ' + (e.stack || e));

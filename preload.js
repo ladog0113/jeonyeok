@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('api', {
   faceData: (slot) => ipcRenderer.invoke('face-data', slot),
   frameData: () => ipcRenderer.invoke('frame-data'),
   cardList: () => ipcRenderer.invoke('card-list'),
+  changelogData: () => ipcRenderer.invoke('changelog-data'),
   setIgnore: (ignore) => ipcRenderer.send('set-ignore', ignore),
   petExit: (info) => ipcRenderer.send('pet-exit', info),
   editorInit: () => ipcRenderer.invoke('face-editor-init'),

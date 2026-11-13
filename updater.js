@@ -42,8 +42,8 @@ async function check(manual) {
     const rel = await res.json();
     const v = String(rel.tag_name || '').replace(/^v/, '');
     const find = (n) => (rel.assets || []).find((a) => a.name === n);
-    log(`check: latest ${v}, running ${VERSION}`);
     if (newer(v, VERSION) && (find(LIVE_ASSET) || find(FULL_ASSET))) {
+      if (state.latest !== v) log(`check: latest ${v}, running ${VERSION}`);
       state.latest = v;
       state.live = find(LIVE_ASSET) ? find(LIVE_ASSET).browser_download_url : null;
       state.full = find(FULL_ASSET) ? find(FULL_ASSET).browser_download_url : null;

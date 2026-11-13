@@ -54,6 +54,36 @@ function updateTray() {
   else tray.setTitle(`D+${-d}`);
 }
 
+let changelogWin = null;
+let changelogSince = null;
+function openChangelog(since) {
+  changelogSince = since || null;
+  if (changelogWin) {
+    changelogWin.reload();
+    changelogWin.focus();
+    return;
+  }
+  changelogWin = new BrowserWindow({
+    width: 520,
+    height: 640,
+    minWidth: 400,
+    minHeight: 400,
+    title: '업데이트 내역',
+    alwaysOnTop: true,
+    webPreferences: { preload: path.join(__dirname, 'preload.js') },
+  });
+  changelogWin.loadFile(path.join(__dirname, 'changelog.html'));
+  changelogWin.on('closed', () => { changelogWin = null; });
+  app.focus({ steal: true });
+}
+ipcMain.handle('changelog-data', () => {
+  let entries = [];
+  let log = '';
+  try { entries = JSON.parse(fs.readFileSync(path.join(__dirname, 'changelog.json'), 'utf8')); } catch {}
+  try { log = fs.readFileSync(path.join(app.getPath('userData'), 'update.log'), 'utf8'); } catch {}
+  return { version: updater.version, since: changelogSince, entries, log };
+});
+
 function openSetup() {
   if (setupWin) {
     setupWin.focus();
@@ -634,6 +664,7 @@ function buildMenu() {
       click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
     },
     ...updater.menuItems(),
+    { label: '업데이트 내역', click: () => openChangelog() },
     { label: `버전 ${updater.version}`, enabled: false },
     { label: '종료', click: () => app.quit() },
   ]);
@@ -789,6 +820,13 @@ async function addCards() {
 
 app.whenReady().then(() => {
   updater.start(() => buildMenu());
+  {
+    const c0 = loadConfig();
+    if (c0 && c0.lastVersion !== updater.version) {
+      setTimeout(() => openChangelog(c0.lastVersion || '2.8.0'), 2500);
+      patchConfig({ lastVersion: updater.version });
+    }
+  }
   protocol.handle('jy', (req) => {
     const name = path.basename(new URL(req.url).pathname);
     const file = path.join(MP_DIR, name);
