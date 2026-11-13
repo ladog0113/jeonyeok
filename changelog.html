@@ -4,75 +4,97 @@
 <meta charset="utf-8">
 <title>업데이트 내역</title>
 <style>
-:root { --bg: #f6f3ea; --card: #fffdf7; --ink: #2b2622; --muted: #7a7466; --line: #d9d2c2; --acc: #6b7a3a; --new: #fff3c4; }
-@media (prefers-color-scheme: dark) { :root { --bg: #22241f; --card: #2b2d27; --ink: #ecebe3; --muted: #a8a796; --line: #45473f; --acc: #a6b867; --new: #4a4326; } }
+:root {
+  --label: #1d1d1f; --secondary: rgba(60, 60, 67, .62); --tertiary: rgba(60, 60, 67, .32);
+  --sep: rgba(60, 60, 67, .16); --group: rgba(255, 255, 255, .72); --win: #ececec;
+  --seg: rgba(118, 118, 128, .14); --seg-on: #fff; --blue: #007aff;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --label: #f5f5f7; --secondary: rgba(235, 235, 245, .6); --tertiary: rgba(235, 235, 245, .3);
+    --sep: rgba(84, 84, 88, .55); --group: rgba(255, 255, 255, .06); --win: #1e1e1e;
+    --seg: rgba(118, 118, 128, .24); --seg-on: #636366; --blue: #0a84ff;
+  }
+}
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { background: var(--bg); color: var(--ink); font: 14px/1.55 -apple-system, "Apple SD Gothic Neo", sans-serif; display: flex; flex-direction: column; }
-header { padding: 16px 18px 0; }
-h1 { margin: 0; font-size: 17px; }
-.now { margin-top: 2px; color: var(--muted); font-size: 12px; }
-.tabs { display: flex; gap: 6px; margin-top: 12px; border-bottom: 1px solid var(--line); }
-.tabs button { font: inherit; font-weight: 700; font-size: 13px; padding: 7px 12px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); cursor: pointer; }
-.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--acc); }
-main { flex: 1; overflow: auto; padding: 14px 18px 18px; }
-.ver { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
-.ver.new { background: var(--new); }
-.ver h2 { margin: 0 0 6px; font-size: 15px; display: flex; align-items: baseline; gap: 8px; }
-.ver h2 small { font-weight: 500; color: var(--muted); font-size: 12px; }
-.ver h2 .badge { font-size: 11px; font-weight: 800; color: #fff; background: var(--acc); border-radius: 99px; padding: 1px 7px; }
-.ver ul { margin: 0; padding-left: 18px; }
-.ver li + li { margin-top: 3px; }
-pre { margin: 0; white-space: pre-wrap; word-break: break-all; font: 12px/1.6 ui-monospace, Menlo, monospace; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
-.empty { color: var(--muted); }
-footer { padding: 10px 18px 14px; display: flex; justify-content: flex-end; border-top: 1px solid var(--line); }
-footer button { font: inherit; font-weight: 700; padding: 6px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+body { background: var(--win); color: var(--label); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; -webkit-font-smoothing: antialiased; word-break: keep-all; display: flex; flex-direction: column; user-select: none; -webkit-user-select: none; }
+html.vibrant body { background: transparent; }
+header { -webkit-app-region: drag; padding: 40px 24px 12px; text-align: center; }
+h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.now { margin-top: 2px; color: var(--secondary); font-size: 12px; }
+.seg { -webkit-app-region: no-drag; display: inline-flex; margin-top: 14px; padding: 2px; border-radius: 8px; background: var(--seg); }
+.seg button { font: inherit; font-size: 12px; font-weight: 500; color: var(--label); min-width: 104px; padding: 3px 12px; border: 0; border-radius: 6px; background: transparent; cursor: default; }
+.seg button[aria-selected="true"] { background: var(--seg-on); box-shadow: 0 1px 2px rgba(0, 0, 0, .12), 0 0 0 .5px rgba(0, 0, 0, .06); }
+.seg button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+main { flex: 1; overflow: auto; padding: 6px 20px 22px; }
+.ver + .ver { margin-top: 18px; }
+.vh { display: flex; align-items: baseline; gap: 8px; padding: 0 10px 6px; }
+.vh b { font-size: 13px; font-weight: 600; }
+.vh .tag { font-size: 11px; font-weight: 500; color: var(--secondary); }
+.vh .tag.fresh { color: var(--blue); }
+.vh .date { margin-left: auto; color: var(--secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
+.group { background: var(--group); border-radius: 10px; box-shadow: 0 0 0 .5px var(--sep); overflow: hidden; }
+.row { display: flex; gap: 10px; padding: 8px 12px; }
+.row + .row { border-top: .5px solid var(--sep); }
+.row .dot { flex: none; width: 6px; height: 6px; margin-top: 7px; border-radius: 50%; background: var(--tertiary); }
+.ver.fresh .row .dot { background: var(--blue); }
+.row .t { color: var(--secondary); font-variant-numeric: tabular-nums; flex: none; min-width: 112px; }
+.empty { text-align: center; color: var(--secondary); padding: 40px 0; }
 </style>
 </head>
 <body>
 <header>
   <h1>업데이트 내역</h1>
   <div class="now" id="now"></div>
-  <div class="tabs" role="tablist">
+  <div class="seg" role="tablist">
     <button role="tab" id="t-notes" aria-selected="true">변경 사항</button>
     <button role="tab" id="t-log" aria-selected="false">설치 기록</button>
   </div>
 </header>
 <main id="main"></main>
-<footer><button id="close" type="button">닫기</button></footer>
 <script>
+if (/vibrancy=1/.test(location.search)) document.documentElement.classList.add('vibrant');
 (async () => {
   const d = await window.api.changelogData();
   const main = document.getElementById('main');
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   document.getElementById('now').textContent = `설치된 버전 ${d.version}`;
   const newer = (a, b) => { const pa = a.split('.').map(Number), pb = b.split('.').map(Number); for (let i = 0; i < 3; i++) { if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0); } return false; };
+  const md = (s) => { const t = new Date(s + 'T00:00:00'); return isNaN(t) ? s : `${t.getMonth() + 1}월 ${t.getDate()}일`; };
   function notes() {
+    if (!d.entries.length) { main.innerHTML = '<p class="empty">변경 사항을 불러오지 못했습니다.</p>'; return; }
     main.innerHTML = d.entries.map((e) => {
       const fresh = d.since && newer(e.version, d.since) && !newer(e.version, d.version);
-      return `<section class="ver${fresh ? ' new' : ''}"><h2>${esc(e.version)} <small>${esc(e.date || '')}</small>${e.version === d.version ? '<span class="badge">현재</span>' : ''}</h2><ul>${e.items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul></section>`;
+      const tag = e.version === d.version ? '<span class="tag">현재 버전</span>' : fresh ? '<span class="tag fresh">새로 받음</span>' : '';
+      return `<section class="ver${fresh || e.version === d.version && d.since ? ' fresh' : ''}"><div class="vh"><b>${esc(e.version)}</b>${tag}<span class="date">${esc(md(e.date || ''))}</span></div>` +
+        `<div class="group">${e.items.map((i) => `<div class="row"><span class="dot"></span><span>${esc(i)}</span></div>`).join('')}</div></section>`;
     }).join('');
   }
   function log() {
     const lines = (d.log || '').trim().split('\n').filter(Boolean).map((l) => {
       const m = /^(\d{4}-\d\d-\d\dT[\d:.]+Z)\s(.*)$/.exec(l);
-      if (!m) return l;
+      if (!m) return ['', l];
       const t = new Date(m[1]);
       const p = (n) => String(n).padStart(2, '0');
       let msg = m[2], r;
-      if ((r = /^check: latest (\S+), running (\S+)/.exec(msg))) msg = `새 버전 발견 ${r[1]} (설치된 버전 ${r[2]})`;
+      if ((r = /^check: latest (\S+), running (\S+)/.exec(msg))) msg = `새 버전 ${r[1]} 발견 (설치된 버전 ${r[2]})`;
       else if ((r = /^installed live (\S+)/.exec(msg))) msg = `${r[1]} 설치 완료`;
       else if ((r = /^start live (\S+)/.exec(msg))) msg = `${r[1]}로 실행`;
       else if ((r = /^check failed: (.*)/.exec(msg))) msg = `업데이트 확인 실패 (${r[1]})`;
       else if ((r = /^install failed: (.*)/.exec(msg))) msg = `설치 실패 (${r[1]})`;
-      return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())} ${p(t.getHours())}:${p(t.getMinutes())}  ${msg}`;
+      return [`${t.getMonth() + 1}월 ${t.getDate()}일 ${p(t.getHours())}:${p(t.getMinutes())}`, msg];
     }).reverse();
-    main.innerHTML = lines.length ? `<pre>${esc(lines.join('\n'))}</pre>` : '<p class="empty">아직 기록이 없습니다.</p>';
+    main.innerHTML = lines.length
+      ? `<div class="group">${lines.map(([t, m]) => `<div class="row"><span class="t">${esc(t)}</span><span>${esc(m)}</span></div>`).join('')}</div>`
+      : '<p class="empty">아직 기록이 없습니다.</p>';
   }
   const tn = document.getElementById('t-notes'), tl = document.getElementById('t-log');
-  tn.onclick = () => { tn.setAttribute('aria-selected', 'true'); tl.setAttribute('aria-selected', 'false'); notes(); };
-  tl.onclick = () => { tl.setAttribute('aria-selected', 'true'); tn.setAttribute('aria-selected', 'false'); log(); };
-  document.getElementById('close').onclick = () => window.close();
+  const sel = (a, b, f) => { a.setAttribute('aria-selected', 'true'); b.setAttribute('aria-selected', 'false'); main.scrollTop = 0; f(); };
+  tn.onclick = () => sel(tn, tl, notes);
+  tl.onclick = () => sel(tl, tn, log);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.close(); });
   notes();
 })();
 </script>

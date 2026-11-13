@@ -63,16 +63,20 @@ function openChangelog(since) {
     changelogWin.focus();
     return;
   }
+  const mac = process.platform === 'darwin';
   changelogWin = new BrowserWindow({
-    width: 520,
-    height: 640,
+    width: 480,
+    height: 600,
     minWidth: 400,
-    minHeight: 400,
+    minHeight: 420,
     title: '업데이트 내역',
     alwaysOnTop: true,
+    show: false,
+    ...(mac ? { titleBarStyle: 'hiddenInset', vibrancy: 'under-window', visualEffectState: 'active', backgroundColor: '#00000000' } : {}),
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
-  changelogWin.loadFile(path.join(__dirname, 'changelog.html'));
+  changelogWin.loadFile(path.join(__dirname, 'changelog.html'), { search: mac ? 'vibrancy=1' : '' });
+  changelogWin.once('ready-to-show', () => changelogWin && changelogWin.show());
   changelogWin.on('closed', () => { changelogWin = null; });
   app.focus({ steal: true });
 }
