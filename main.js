@@ -246,7 +246,7 @@ const OUTFIT_NAMES = {
 };
 const ACTIONS = [
   ['한마디 해봐', 'poke'], ['화면 깨기', 'smash'], ['빙글빙글', 'spin'], ['분신술', 'clone'], ['발가락 따봉', 'toe'],
-  ['손가락 별', 'star'], ['그립감', 'grip'], ['공중제비', 'flip'], ['낙서하기', 'scribble'], ['사인하기', 'sign'], ['붓글씨', 'brush'], ['앉아서 쉬기', 'rest'], ['기지개', 'stretch'], ['손 흔들기', 'wave'], ['클락션 빵빵', 'horn'], ['슬라임 터뜨리기', 'slime'], ['잠자기', 'sleep'],
+  ['손가락 별', 'star'], ['그립감', 'grip'], ['공중제비', 'flip'], ['낙서하기', 'scribble'], ['사인하기', 'sign'], ['붓글씨', 'brush'], ['앉아서 쉬기', 'rest'], ['기지개', 'stretch'], ['손 흔들기', 'wave'], ['클락션 빵빵', 'horn'], ['빵 뜯기 (포토카드)', 'bread'], ['오리 변신 (20초)', 'morph'], ['슬라임 터뜨리기', 'slime'], ['잠자기', 'sleep'],
 ];
 const DANCE_ITEMS = [
   ['파라파라', 'dance'], ['호루라기 춤', 'whistle'], ['어깨 털기', 'shimmy'], ['하트 춤', 'heart'], ['파워 댄스', 'power'], ['BAD', 'pop'], ['응원 춤', 'cheer'],
@@ -612,6 +612,7 @@ function buildMenu() {
     },
     { label: `${SLOT_NAMES.a} 옷`, submenu: outfitMenu('a') },
     { label: `${SLOT_NAMES.b} 옷`, submenu: outfitMenu('b') },
+    { label: '포토카드 사진 추가', click: () => addCards() },
     {
       label: '얼굴 바꾸기',
       submenu: [
@@ -754,6 +755,37 @@ ipcMain.on('pet-exit', (e, info) => {
   const w = overlays.get(target.id);
   if (w && !w.isDestroyed() && w.ready) w.webContents.send('spawn', payload);
 });
+
+const cardsDir = () => path.join(app.getPath('userData'), 'cards');
+ipcMain.handle('card-list', () => {
+  const out = [];
+  const add = (dir, prefix) => {
+    try {
+      for (const n of fs.readdirSync(dir).sort()) {
+        if (!/\.(jpe?g|png|webp|gif|heic)$/i.test(n)) continue;
+        out.push({ id: prefix + n, url: fileToDataUrl(path.join(dir, n)) });
+      }
+    } catch {}
+  };
+  add(path.join(__dirname, 'frames', 'cards'), 'b:');
+  add(cardsDir(), 'u:');
+  return out;
+});
+async function addCards() {
+  const r = await dialog.showOpenDialog({ title: '포토카드로 쓸 사진 고르기', properties: ['openFile', 'multiSelections'], filters: [{ name: '이미지', extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic'] }] });
+  if (r.canceled || !r.filePaths.length) return;
+  fs.mkdirSync(cardsDir(), { recursive: true });
+  for (const f of r.filePaths) {
+    try {
+      let img = nativeImage.createFromPath(f);
+      if (img.isEmpty()) continue;
+      const s = img.getSize();
+      if (s.height > 1000) img = img.resize({ height: 1000 });
+      fs.writeFileSync(path.join(cardsDir(), `${Date.now()}-${path.basename(f).replace(/\.[^.]+$/, '')}.jpg`), img.toJPEG(86));
+    } catch {}
+  }
+  for (const w of overlays.values()) if (!w.isDestroyed()) w.webContents.send('cards-updated');
+}
 
 app.whenReady().then(() => {
   updater.start(() => buildMenu());

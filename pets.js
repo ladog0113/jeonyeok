@@ -395,6 +395,65 @@ const DANCES = {
 };
 const NEON_COLORS = ['#ff3df2', '#39f3ff', '#7dff4a', '#ffe14a', '#ff7a3d'];
 
+const MORPH_BASE = (window.petEnv && window.petEnv.morphBase) || 'frames/morph/';
+let pendingMorph = null;
+function scheduleMorph() {
+  setTimeout(() => {
+    const ps = list().filter((p) => !p.morphed);
+    if (ps.length && !pendingMorph) pendingMorph = pick(ps);
+    scheduleMorph();
+  }, rand(4, 9) * 60000);
+}
+
+function makePoof(cx, cy) {
+  for (let i = 0; i < 14; i++) {
+    const d = document.createElement('div');
+    d.className = 'poof';
+    const a = (i / 14) * Math.PI * 2;
+    d.style.left = cx + 'px';
+    d.style.top = cy + 'px';
+    d.style.setProperty('--dx', (Math.cos(a) * rand(40, 80)).toFixed(0) + 'px');
+    d.style.setProperty('--dy', (Math.sin(a) * rand(40, 80)).toFixed(0) + 'px');
+    stage.appendChild(d);
+    setTimeout(() => d.remove(), 800);
+  }
+}
+
+let cardPool = null;
+async function loadCards() {
+  if (!cardPool) {
+    try { cardPool = (await env.cardList()) || []; } catch { cardPool = []; }
+  }
+  return cardPool;
+}
+function cardSeen() {
+  try { return new Set(JSON.parse(localStorage.getItem('jy-cards') || '[]')); } catch { return new Set(); }
+}
+async function showCard() {
+  const pool = await loadCards();
+  if (!pool.length) return;
+  const idx = Math.floor(Math.random() * pool.length);
+  const r = Math.random();
+  const rare = r < 0.04 ? 'SSR' : r < 0.16 ? 'SR' : r < 0.4 ? 'R' : 'N';
+  const seen = cardSeen();
+  const isNew = !seen.has(pool[idx].id);
+  seen.add(pool[idx].id);
+  try { localStorage.setItem('jy-cards', JSON.stringify([...seen])); } catch {}
+  document.querySelectorAll('.pcard-wrap').forEach((e) => e.remove());
+  const wrap = document.createElement('div');
+  wrap.className = 'pcard-wrap';
+  const h = Math.min(H() * 0.62, 520);
+  wrap.style.setProperty('--ch', h.toFixed(0) + 'px');
+  wrap.innerHTML = `<div class="pcard rare-${rare}"><div class="face back"><div class="back-in"><b>전역</b><span>PHOTO CARD</span></div></div>` +
+    `<div class="face front"><img alt=""><div class="shine"></div><div class="tagline"><span class="rk">${rare}</span><span>${fill('D-{d}', stats())}</span></div></div></div>` +
+    `<div class="pcount">${isNew ? 'NEW ' : ''}${seen.size}/${pool.length}</div>`;
+  wrap.querySelector('img').src = pool[idx].url;
+  stage.appendChild(wrap);
+  if (rare === 'SSR' || rare === 'SR') makeBlast(W() / 2, H() / 2 - h * 0.62, rare + '!');
+  setTimeout(() => wrap.classList.add('out'), 5200);
+  setTimeout(() => wrap.remove(), 6000);
+}
+
 function makeBlast(cx, cy, text) {
   const chars = [...text];
   const fs = Math.sqrt((W() * H() * 0.2) / (chars.length * 0.95));
@@ -501,7 +560,7 @@ class Pet {
   }
   setTag(text) { this.tag.textContent = text; }
   busy() {
-    return ['drag', 'leave', 'smash', 'dance', 'write', 'toe', 'star', 'grip', 'grip-go', 'sleep', 'sign', 'slime', 'brush', 'flip', 'rest', 'stretch', 'wave', 'horn'].includes(this.state) || this.spinT >= 0;
+    return ['drag', 'leave', 'smash', 'dance', 'write', 'toe', 'star', 'grip', 'grip-go', 'sleep', 'sign', 'slime', 'brush', 'flip', 'rest', 'stretch', 'wave', 'horn', 'bread'].includes(this.state) || this.spinT >= 0 || this.morphed;
   }
   walkTo(x, y) {
     this.tx = clamp(x, 10, W() - PW - 10);
@@ -585,6 +644,47 @@ class Pet {
     this.actDur = 1.6;
     if (mouse.seen) this.facing = mouse.x > this.x + PW / 2 ? 1 : -1;
     if (Math.random() < 0.6) this.say(pick(['안녕', '오 왔어?', '일 안 해?', fill('D-{d}', stats())]), 1800);
+  }
+  bread() {
+    if (this.busy()) return;
+    this.state = 'bread';
+    this.actT = 0;
+    this.actDur = 2.6;
+    this.torn = false;
+    if (!this.breadEl) {
+      this.breadEl = document.createElement('div');
+      this.breadEl.className = 'bread';
+      this.breadEl.innerHTML = '<div class="bh l"><span>전역</span></div><div class="bh r"><span>빵</span></div><div class="bun"></div>';
+      this.flipper.appendChild(this.breadEl);
+    }
+    this.breadEl.className = 'bread on';
+    this.say(pick(['포카 뭐 나오지', '제발 SSR', '빵은 안 먹음', '띠부씰 말고 포카']), 1800);
+  }
+  morph() {
+    if (this.morphed || this.clone) return;
+    this.morphed = true;
+    this.morphUntil = performance.now() + 20000;
+    this.state = 'idle';
+    this.until = performance.now() + 600;
+    if (!this.morphEl) {
+      this.morphEl = document.createElement('img');
+      this.morphEl.className = 'morph';
+      this.morphEl.alt = '';
+      this.flipper.appendChild(this.morphEl);
+    }
+    this.morphView = '';
+    this.rig.svg.style.visibility = 'hidden';
+    this.morphEl.style.display = 'block';
+    for (const el of [this.wheel, this.breadEl]) if (el) el.className = el.className.replace(/ on| press/g, '');
+    makePoof(this.x + PW / 2, this.y + PH / 2);
+    this.say(pick(['꽥', '20초만 오리할게', '나 지금 변신 중', '왕관 썼다 꽥']), 2200);
+  }
+  unmorph() {
+    this.morphed = false;
+    this.rig.svg.style.visibility = '';
+    if (this.morphEl) this.morphEl.style.display = 'none';
+    makePoof(this.x + PW / 2, this.y + PH / 2);
+    this.say(pick(['원래대로', '변신 끝', fill('D-{d} 다시 시작', stats())]), 1800);
   }
   horn() {
     if (this.busy()) return;
@@ -780,6 +880,24 @@ class Pet {
       this.amp = lerp(this.amp, Math.min(1, speed / 80), Math.min(1, dt * 10));
       if (this.vx > 12) this.facing = 1;
       else if (this.vx < -12) this.facing = -1;
+      if (this.morphed) {
+        if (now > this.morphUntil) this.unmorph();
+        else {
+          const view = speed > 20 ? 'side' : now % 9000 < 1200 ? 'back' : 'front';
+          if (view !== this.morphView) {
+            this.morphView = view;
+            this.morphEl.src = MORPH_BASE + `duck_${view}.png`;
+            this.morphEl.classList.toggle('side', view === 'side');
+          }
+          const hopY = speed > 20 ? -Math.abs(Math.sin(this.phase * 2)) * 6 : Math.sin(now / 400) * 1.2;
+          const wob = speed > 20 ? Math.sin(this.phase * 2) * 6 : 0;
+          this.morphEl.style.setProperty('--hop', hopY.toFixed(1) + 'px');
+          this.morphEl.style.setProperty('--wob', wob.toFixed(1) + 'deg');
+        }
+      } else if (pendingMorph === this && this.state === 'idle' && !this.busy()) {
+        pendingMorph = null;
+        this.morph();
+      }
       const near = mouse.seen && Math.hypot(mouse.x - (this.x + PW / 2), mouse.y - (this.y + PH / 2)) < 170;
       if (this.state === 'idle' && now > this.until && !this.clone && !duoPending) {
         const r = Math.random();
@@ -901,6 +1019,22 @@ class Pet {
         darm = [12, -150 + Math.sin(this.actT * 14) * 22];
         danceTilt = 5;
         if (this.actT >= this.actDur) { this.state = 'idle'; this.until = now + 1500; }
+      }
+      if (this.state === 'bread') {
+        this.actT += dt;
+        const t = this.actT;
+        darm = t < 0.9 ? [-40, -40] : [-70 + Math.sin(t * 30) * 4, -20];
+        danceLean = t > 0.9 && t < 1.2 ? 4 : 1;
+        if (!this.torn && t > 0.95) {
+          this.torn = true;
+          this.breadEl.className = 'bread on torn';
+          setTimeout(() => showCard(), 250);
+        }
+        if (t >= this.actDur) {
+          this.state = 'idle';
+          this.until = now + 1500;
+          this.breadEl.className = 'bread';
+        }
       }
       if (this.state === 'horn') {
         this.actT += dt;
@@ -1446,6 +1580,7 @@ function chatter() {
   else if (r < 0.77) cloneJutsu(a);
   else if (r < 0.78) a.toeUp();
   else if (r < 0.79) a.horn();
+  else if (r < 0.795) a.bread();
   else if (r < 0.8) a.sleep();
   else if (r < 0.81) a.rest();
   else if (r < 0.82) a.sign();
@@ -1506,6 +1641,7 @@ window.petWorld = {
     const first = list()[0];
     if (first) setTimeout(() => first.say(line()), 1200);
     setTimeout(chatter, rand(8000, 14000));
+    scheduleMorph();
   },
   async setConfig(c) {
     cfg = c;
@@ -1536,6 +1672,9 @@ window.petWorld = {
   stretch: (slot) => { const p = pickPet(slot); if (p) p.stretch(); },
   wave: (slot) => { const p = pickPet(slot); if (p) p.wave(); },
   horn: (slot) => { const p = pickPet(slot); if (p) p.horn(); },
+  reloadCards: () => { cardPool = null; },
+  bread: (slot) => { const p = pickPet(slot); if (p) p.bread(); },
+  morph: (slot) => { const p = pickPet(slot); if (p) { if (p.busy() && !p.morphed) { p.state = 'idle'; } p.morph(); } },
   brush: (slot) => { const p = pickPet(slot); if (p) p.brush(); },
   flip: (slot) => { const p = pickPet(slot); if (p) p.flip(); },
   pop: () => duoDance('pop'),

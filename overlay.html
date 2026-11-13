@@ -17,6 +17,7 @@ function normFace(f) {
 window.petEnv = {
   setIgnore: (v) => window.api.setIgnore(v),
   petExit: (info) => window.api.petExit(info),
+  cardList: () => window.api.cardList(),
   frameFor: async (cfg) => (cfg.frameFile ? window.api.frameData() : null),
   faceFor: async (slot, cfg) => {
     const f = normFace((cfg.faces || {})[slot]);
@@ -33,10 +34,11 @@ window.petEnv = {
 <script>
 window.api.on('poke', (slot) => petWorld.poke(slot));
 window.api.on('smash', (slot) => petWorld.smash(slot));
-for (const k of ['spin', 'dance', 'neon', 'whistle', 'shimmy', 'heart', 'power', 'cheer', 'sign', 'slime', 'sleep', 'brush', 'flip', 'pop', 'rest', 'stretch', 'wave', 'horn', 'clone', 'toe', 'star', 'grip', 'scribble']) window.api.on(k, (slot) => petWorld[k](slot));
+for (const k of ['spin', 'dance', 'neon', 'whistle', 'shimmy', 'heart', 'power', 'cheer', 'sign', 'slime', 'sleep', 'brush', 'flip', 'pop', 'rest', 'stretch', 'wave', 'horn', 'bread', 'morph', 'clone', 'toe', 'star', 'grip', 'scribble']) window.api.on(k, (slot) => petWorld[k](slot));
 window.api.on('spawn', (info) => petWorld.spawn(info));
 window.api.on('screens', (n) => petWorld.setScreens(n));
 window.api.on('config-updated', (c) => petWorld.setConfig(c));
+window.api.on('cards-updated', () => petWorld.reloadCards());
 window.api.init().then((info) => petWorld.start(info.cfg, info.pets, info.screens));
 </script>
 </body>
