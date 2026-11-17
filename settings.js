@@ -56,7 +56,7 @@
       </div>
       <div class="sec-h">효과</div><div class="group">
         ${row('효과음', sw('sound', c.sound !== false))}
-        ${row('목소리', sw('voice', c.voice !== false))}
+        ${row('정각 알림', sw('chime', c.chime !== false))}
         ${row('알림 배너', sw('banners', c.banners !== false))}
         ${row('알림 배너 빈도', seg('bannerFreq', [['low', '적게'], ['normal', '보통'], ['high', '자주']], c.bannerFreq || 'normal'))}
         ${row('알림 배너 지금 보기', btn('banner', '보기'))}

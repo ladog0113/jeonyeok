@@ -615,7 +615,7 @@ class Pet {
   }
   setTag(text) { this.tag.textContent = text; }
   busy() {
-    return ['drag', 'leave', 'smash', 'dance', 'write', 'toe', 'star', 'grip', 'grip-go', 'sleep', 'sign', 'slime', 'brush', 'flip', 'rest', 'stretch', 'wave', 'horn', 'bread', 'hi5', 'rps', 'tag'].includes(this.state) || this.spinT >= 0 || this.morphed;
+    return ['drag', 'leave', 'smash', 'dance', 'write', 'toe', 'star', 'grip', 'grip-go', 'sleep', 'sign', 'slime', 'brush', 'flip', 'rest', 'stretch', 'wave', 'horn', 'chime', 'bread', 'hi5', 'rps', 'tag'].includes(this.state) || this.spinT >= 0 || this.morphed;
   }
   walkTo(x, y) {
     this.tx = clamp(x, 10, W() - PW - 10);
@@ -759,6 +759,26 @@ class Pet {
     }
     this.wheel.classList.add('on');
     if (Math.random() < 0.6) this.say(pick(['비켜!', '전역 차 지나간다', '빵빵 비켜라', fill('D-{d} 남았다 빵빵', stats())]), 2200);
+  }
+  chime(hour) {
+    if (this.morphed) return;
+    if (this.busy()) this.state = 'idle';
+    const h = hour == null ? new Date().getHours() : hour;
+    this.state = 'chime';
+    this.actT = 0;
+    this.actDur = 3.6;
+    this.chimeH = h % 12 || 12;
+    this.shouted = false;
+    if (!this.clockEl) {
+      this.clockEl = document.createElement('div');
+      this.clockEl.className = 'clockprop';
+      this.flipper.appendChild(this.clockEl);
+    }
+    const ang = (this.chimeH % 12) * 30;
+    this.clockEl.innerHTML = `<svg viewBox="-30 -34 60 66" width="100%" height="100%"><path d="M-22 -22 L-14 -30 M22 -22 L14 -30" stroke="#2b2622" stroke-width="4" stroke-linecap="round"/><circle cx="-19" cy="-25" r="7" fill="#d9473a" stroke="#2b2622" stroke-width="2"/><circle cx="19" cy="-25" r="7" fill="#d9473a" stroke="#2b2622" stroke-width="2"/><path d="M-14 24 L-19 31 M14 24 L19 31" stroke="#2b2622" stroke-width="4" stroke-linecap="round"/><circle r="24" fill="#d9473a" stroke="#2b2622" stroke-width="2.5"/><circle r="19" fill="#fffdf6" stroke="#2b2622" stroke-width="1.5"/>${[0, 90, 180, 270].map((a) => `<rect x="-1.2" y="-17" width="2.4" height="4" fill="#2b2622" transform="rotate(${a})"/>`).join('')}<path d="M0 0 V-14" stroke="#2b2622" stroke-width="2.4" stroke-linecap="round"/><path d="M0 0 V-9" stroke="#2b2622" stroke-width="3.4" stroke-linecap="round" transform="rotate(${ang})"/><circle r="2.4" fill="#2b2622"/></svg>`;
+    this.clockEl.classList.remove('ring');
+    this.el.classList.add('chiming');
+    requestAnimationFrame(() => this.clockEl.classList.add('on'));
   }
   sign() {
     if (this.busy()) return;
@@ -1146,6 +1166,27 @@ class Pet {
         } else if (this.actT > 10) {
           if (this.tagIt) this.say('아 못 잡겠다', 1600);
           [this, o].forEach((q) => { if (q) { q.state = 'idle'; q.until = now + 1500; q.tagOther = null; } });
+        }
+      }
+      if (this.state === 'chime') {
+        this.actT += dt;
+        const t = this.actT;
+        const up = clamp(t / 0.45, 0, 1) * (t > this.actDur - 0.4 ? clamp((this.actDur - t) / 0.4, 0, 1) : 1);
+        darm = [10 + 150 * up, -10 - 150 * up];
+        popAmt = -0.4 * up;
+        if (!this.shouted && t > 0.55) {
+          this.shouted = true;
+          this.clockEl.classList.add('ring');
+          SFX.play('chime');
+          makeBlast(this.x + PW / 2, this.y - 150, this.chimeH + '시!!!', pick(['burst', 'pop', 'extrude', 'stamp']));
+        }
+        mouthOpen = t > 0.55 && t < 2.4;
+        hop = t > 0.55 && t < 1.3 ? -3 * Math.abs(Math.sin((t - 0.55) * 12)) : 0;
+        if (t >= this.actDur) {
+          this.state = 'idle';
+          this.until = now + 1500;
+          this.clockEl.classList.remove('on', 'ring');
+          this.el.classList.remove('chiming');
         }
       }
       if (this.state === 'horn') {
@@ -1887,6 +1928,11 @@ window.petWorld = {
   stretch: (slot) => { const p = pickPet(slot); if (p) p.stretch(); },
   wave: (slot) => { const p = pickPet(slot); if (p) p.wave(); },
   horn: (slot) => { const p = pickPet(slot); if (p) p.horn(); },
+  chime: (arg) => {
+    const h = typeof arg === 'number' ? arg : null;
+    const p = typeof arg === 'string' ? pickPet(arg) : pickPet(Math.random() < 0.5 ? 'a' : 'b');
+    if (p) p.chime(h);
+  },
   reloadCards: () => { cardPool = null; },
   milestone: (d) => runMilestone(Number(d)),
   hi5: () => duoAct('hi5'),

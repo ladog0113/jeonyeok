@@ -252,3 +252,10 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 .snowman { position: absolute; pointer-events: none; z-index: 1; animation: pop-in .5s cubic-bezier(.2,1.5,.4,1) both; transform-origin: 50% 100%; }
 .snowman.melt { transition: transform 1.4s, opacity 1.4s; transform: scaleY(.2); opacity: 0; }
 @keyframes pop-in { from { transform: scale(0); } to { transform: scale(1); } }
+
+/* 정각 알림 시계 */
+.pet .clockprop { position: absolute; left: 12%; top: -66%; width: 76%; height: 80%; opacity: 0; transform: translateY(40%) scale(.5); transition: opacity .25s, transform .35s cubic-bezier(.3,1.6,.6,1); pointer-events: none; z-index: 3; }
+.pet .clockprop.on { opacity: 1; transform: none; }
+.pet .clockprop.ring svg { animation: clkring .08s linear 14 alternate; transform-origin: 50% 60%; }
+@keyframes clkring { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+.pet.chiming .tag, .pet.chiming .bubble { opacity: 0 !important; }

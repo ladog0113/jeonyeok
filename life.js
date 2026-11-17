@@ -1,41 +1,7 @@
-// 오늘의 아크릴, 키우기, 마우스 장난, 날씨와 계절, 목소리
+// 오늘의 아크릴, 키우기, 마우스 장난, 날씨와 계절
 (function () {
   const api = window.petEnv || {};
   const now = () => performance.now();
-
-  /* ---------- 목소리 ---------- */
-  let koVoice = null;
-  function pickVoice() {
-    try {
-      const vs = speechSynthesis.getVoices();
-      koVoice = vs.find((v) => /ko/i.test(v.lang) && /yuna|유나/i.test(v.name)) || vs.find((v) => /ko/i.test(v.lang)) || null;
-    } catch {}
-  }
-  try { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; } catch {}
-  function voiceOn() { return cfg && cfg.voice !== false && cfg.sound !== false && cfg.capture !== 'work'; }
-  function speak(text, slot) {
-    if (!voiceOn() || !window.speechSynthesis) return;
-    const t = String(text).replace(/[^\p{L}\p{N}\s?!.~]/gu, '').slice(0, 24);
-    if (!t.trim()) return;
-    try {
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(t);
-      u.lang = 'ko-KR';
-      if (koVoice) u.voice = koVoice;
-      u.rate = 1.15;
-      u.pitch = slot === 'b' ? 0.75 : 1.7;
-      u.volume = 0.8;
-      speechSynthesis.speak(u);
-    } catch {}
-  }
-  const VOICE_LINES = ['야!', '버텨!', '꿀빨아?', '전역!', '퇴근!', '아 진짜', '헐', '대박', '오이쉬', '야호!', '꽥', '배고파', '흥'];
-  const origSay = Pet.prototype.say;
-  Pet.prototype.say = function (text, ms) {
-    const r = origSay.call(this, text, ms);
-    const short = String(text).length <= 8;
-    if (!this.clone && ((short && Math.random() < 0.4) || VOICE_LINES.some((v) => String(text).startsWith(v)))) speak(text, this.slot);
-    return r;
-  };
 
   /* ---------- 오늘의 아크릴 ---------- */
   function seeded(seed) {
@@ -380,7 +346,6 @@
     trash: (slot) => trashRun(pickPet(slot)),
     weather: (w) => { weather = w; },
     careOf: () => care,
-    speak,
   });
   const origStart = W0.start;
   W0.start = function (...args) {

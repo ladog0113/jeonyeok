@@ -283,7 +283,7 @@ const OUTFIT_NAMES = {
 };
 const ACTIONS = [
   ['한마디 해봐', 'poke'], ['화면 깨기', 'smash'], ['빙글빙글', 'spin'], ['분신술', 'clone'], ['발가락 따봉', 'toe'],
-  ['손가락 별', 'star'], ['그립감', 'grip'], ['공중제비', 'flip'], ['낙서하기', 'scribble'], ['사인하기', 'sign'], ['붓글씨', 'brush'], ['앉아서 쉬기', 'rest'], ['기지개', 'stretch'], ['손 흔들기', 'wave'], ['클락션 빵빵', 'horn'], ['오늘의 아크릴', 'acryl'], ['밥 주기', 'feed'], ['쓰다듬기', 'petpet'], ['커서 훔치기', 'steal'], ['쓰레기 줍기', 'trash'], ['남은 것 영수증', 'receipt'], ['둘이 하이파이브', 'hi5'], ['둘이 가위바위보', 'rps'], ['둘이 술래잡기', 'tag'], ['둘이 낮잠', 'nap'], ['빵 뜯기 (포토카드)', 'bread'], ['오리 변신 (20초)', 'morph'], ['슬라임 터뜨리기', 'slime'], ['잠자기', 'sleep'],
+  ['손가락 별', 'star'], ['그립감', 'grip'], ['공중제비', 'flip'], ['낙서하기', 'scribble'], ['사인하기', 'sign'], ['붓글씨', 'brush'], ['앉아서 쉬기', 'rest'], ['기지개', 'stretch'], ['손 흔들기', 'wave'], ['클락션 빵빵', 'horn'], ['정각 알림', 'chime'], ['오늘의 아크릴', 'acryl'], ['밥 주기', 'feed'], ['쓰다듬기', 'petpet'], ['커서 훔치기', 'steal'], ['쓰레기 줍기', 'trash'], ['남은 것 영수증', 'receipt'], ['둘이 하이파이브', 'hi5'], ['둘이 가위바위보', 'rps'], ['둘이 술래잡기', 'tag'], ['둘이 낮잠', 'nap'], ['빵 뜯기 (포토카드)', 'bread'], ['오리 변신 (20초)', 'morph'], ['슬라임 터뜨리기', 'slime'], ['잠자기', 'sleep'],
 ];
 const DANCE_ITEMS = [
   ['파라파라', 'dance'], ['호루라기 춤', 'whistle'], ['어깨 털기', 'shimmy'], ['하트 춤', 'heart'], ['파워 댄스', 'power'], ['BAD', 'pop'], ['응원 춤', 'cheer'],
@@ -1069,6 +1069,14 @@ function lifeTick() {
     sendPrimary('life', k);
   };
   const hm = n.getHours() * 60 + n.getMinutes();
+  if (cfg.chime !== false && n.getMinutes() === 0) {
+    const hk = 'chime' + n.getHours();
+    if (ev[hk] !== key) {
+      saveConfig({ ...(loadConfig() || {}), lifeDone: { ...ev, [hk]: key } });
+      ev[hk] = key;
+      sendPrimary('chime', n.getHours());
+    }
+  }
   if (wd >= 1 && wd <= 5) {
     if (hm >= 16 * 60 + 50 && hm < 17 * 60) fire('offsoon');
     if (hm >= 17 * 60 && hm < 17 * 60 + 15) fire('offwork');
@@ -1107,7 +1115,7 @@ async function runSelftest() {
     for (const w of overlays.values()) w.webContents.on('console-message', (_e, level, msg) => { if (level >= 3) res.errors.push('overlay console: ' + msg); });
     await wait(2500);
     await cap(ov, 'overlay');
-    for (const [k, t] of [['bread', 3200], ['horn', 2400], ['morph', 1800], ['feed', 3000], ['acryl', 1500], ['hi5', 5000], ['receipt', 1600]]) { ov.webContents.send(k, 'a'); await wait(t); await cap(ov, 'act-' + k); }
+    for (const [k, t] of [['bread', 3200], ['chime', 1300], ['horn', 2400], ['morph', 1800], ['feed', 3000], ['acryl', 1500], ['hi5', 5000], ['receipt', 1600]]) { ov.webContents.send(k, 'a'); await wait(t); await cap(ov, 'act-' + k); }
     ov.webContents.send('banner', { title: '자동 점검', body: '알림 배너 표시 확인' });
     await wait(900);
     await cap(ov, 'banner');

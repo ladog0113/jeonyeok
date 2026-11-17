@@ -81,6 +81,13 @@ const SFX = (() => {
     poof() { noise({ type: 'lowpass', f: 1400, f2: 220, d: 0.42, v: 0.4 }); },
     splat() { noise({ type: 'lowpass', f: 900, f2: 160, d: 0.28, v: 0.45 }); tone({ f: 140, f2: 60, d: 0.2, v: 0.25 }); },
     crash() { noise({ type: 'highpass', f: 1500, d: 0.55, v: 0.32 }); tone({ f: 90, f2: 40, d: 0.3, v: 0.35 }); },
+    chime() {
+      for (let i = 0; i < 10; i++) tone({ type: 'square', f: i % 2 ? 2350 : 2100, t: i * 0.055, d: 0.05, v: 0.035, lp: 5000 });
+      tone({ type: 'triangle', f: 659.3, t: 0.6, d: 0.9, v: 0.16 });
+      tone({ type: 'sine', f: 1318.5, t: 0.6, d: 0.6, v: 0.05 });
+      tone({ type: 'triangle', f: 523.3, t: 1.05, d: 1.1, v: 0.16 });
+      tone({ type: 'sine', f: 1046.5, t: 1.05, d: 0.7, v: 0.05 });
+    },
     ding() { tone({ f: 1318.5, d: 0.5, v: 0.08 }); tone({ f: 1975.5, t: 0.08, d: 0.6, v: 0.06 }); },
     sparkle() { [1568, 2093, 2637, 3136, 4186].forEach((f, i) => tone({ f, t: i * 0.06, d: 0.35, v: 0.07 })); },
     boom() { tone({ f: 110, f2: 38, d: 0.8, v: 0.4, a: 0.004 }); noise({ type: 'lowpass', f: 700, f2: 120, d: 0.9, v: 0.35 }); },
