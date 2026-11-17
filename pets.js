@@ -267,6 +267,7 @@ function makeZzz(cx, cy) {
     sp.style.fontSize = (1 - i * 0.16).toFixed(2) + 'em';
     d.appendChild(sp);
   });
+  styleBlast(d, [...d.children], style);
   d.style.fontSize = fs.toFixed(0) + 'px';
   const bw = fs * text.length * 0.8, bh = fs * 1.1;
   d.style.left = clamp(cx, bw / 2 + 8, W() - bw / 2 - 8).toFixed(0) + 'px';
@@ -426,8 +427,14 @@ async function loadCards() {
   }
   return cardPool;
 }
-function cardSeen() {
-  try { return new Set(JSON.parse(localStorage.getItem('jy-cards') || '[]')); } catch { return new Set(); }
+async function recordCard(id, rare) {
+  if (env.recordCard) return env.recordCard(id, rare);
+  let seen;
+  try { seen = JSON.parse(localStorage.getItem('jy-cards2') || '{}'); } catch { seen = {}; }
+  const isNew = !seen[id];
+  seen[id] = { n: ((seen[id] || {}).n || 0) + 1, best: rare };
+  try { localStorage.setItem('jy-cards2', JSON.stringify(seen)); } catch {}
+  return { isNew, count: Object.keys(seen).length };
 }
 async function showCard() {
   const pool = await loadCards();
@@ -435,10 +442,8 @@ async function showCard() {
   const idx = Math.floor(Math.random() * pool.length);
   const r = Math.random();
   const rare = r < 0.04 ? 'SSR' : r < 0.16 ? 'SR' : r < 0.4 ? 'R' : 'N';
-  const seen = cardSeen();
-  const isNew = !seen.has(pool[idx].id);
-  seen.add(pool[idx].id);
-  try { localStorage.setItem('jy-cards', JSON.stringify([...seen])); } catch {}
+  const rec = (await recordCard(pool[idx].id, rare)) || { isNew: false, count: 0 };
+  const isNew = rec.isNew;
   document.querySelectorAll('.pcard-wrap').forEach((e) => e.remove());
   const wrap = document.createElement('div');
   wrap.className = 'pcard-wrap';
@@ -446,15 +451,19 @@ async function showCard() {
   wrap.style.setProperty('--ch', h.toFixed(0) + 'px');
   wrap.innerHTML = `<div class="pcard rare-${rare}"><div class="face back"><div class="back-in"><b>전역</b><span>PHOTO CARD</span></div></div>` +
     `<div class="face front"><img alt=""><div class="shine"></div><div class="tagline"><span class="rk">${rare}</span><span>${fill('D-{d}', stats())}</span></div></div></div>` +
-    `<div class="pcount">${isNew ? 'NEW ' : ''}${seen.size}/${pool.length}</div>`;
+    `<div class="pcount">${isNew ? 'NEW ' : ''}${rec.count}/${pool.length}</div>`;
   wrap.querySelector('img').src = pool[idx].url;
   stage.appendChild(wrap);
-  if (rare === 'SSR' || rare === 'SR') makeBlast(W() / 2, H() / 2 - h * 0.62, rare + '!');
+  SFX.play('whoosh');
+  setTimeout(() => SFX.play('flip'), 650);
+  if (rare === 'SSR' || rare === 'SR') setTimeout(() => SFX.play('sparkle'), 1500);
+  if (rare === 'SSR' || rare === 'SR') makeBlast(W() / 2, H() / 2 - h * 0.62, rare + '!', 'neon');
+  if (rare === 'SSR') setTimeout(() => showBanner({ title: 'SSR 포토카드 획득', body: `${rec.count}/${pool.length}장 모음`, thumb: pool[idx].url }), 1800);
   setTimeout(() => wrap.classList.add('out'), 5200);
   setTimeout(() => wrap.remove(), 6000);
 }
 
-function makeBlast(cx, cy, text) {
+function makeBlast(cx, cy, text, style) {
   const chars = [...text];
   const fs = Math.sqrt((W() * H() * 0.2) / (chars.length * 0.95));
   const bw = fs * chars.length * 0.92, bh = fs * 1.1;
@@ -471,7 +480,7 @@ function makeBlast(cx, cy, text) {
   d.style.top = clamp(cy, bh / 2 + 8, H() - bh / 2 - 8).toFixed(0) + 'px';
   d.style.setProperty('--r', rand(-8, 8).toFixed(1) + 'deg');
   stage.appendChild(d);
-  setTimeout(() => d.remove(), 1300 + chars.length * 90);
+  setTimeout(() => d.remove(), 1500 + chars.length * 90);
 }
 
 const PP = [[160, -160], [130, -160], [160, -130], [150, -150], [60, -60], [-55, 55], [-55, 55], [110, -15], [15, -110], [150, -30], [30, -150], [95, -95], [95, -95], [170, -40], [40, -170], [160, -160]];
@@ -599,6 +608,7 @@ class Pet {
     if (this.busy()) return;
     this.state = 'smash';
     this.smashT = 0;
+    setTimeout(() => SFX.play('crash'), 380);
   }
   spin() {
     if (this.state === 'drag') return;
@@ -677,6 +687,8 @@ class Pet {
     this.morphEl.style.display = 'block';
     for (const el of [this.wheel, this.breadEl]) if (el) el.className = el.className.replace(/ on| press/g, '');
     makePoof(this.x + PW / 2, this.y + PH / 2);
+    SFX.play('poof');
+    setTimeout(() => SFX.play('quack'), 350);
     this.say(pick(['꽥', '20초만 오리할게', '나 지금 변신 중', '왕관 썼다 꽥']), 2200);
   }
   unmorph() {
@@ -684,6 +696,7 @@ class Pet {
     this.rig.svg.style.visibility = '';
     if (this.morphEl) this.morphEl.style.display = 'none';
     makePoof(this.x + PW / 2, this.y + PH / 2);
+    SFX.play('poof');
     this.say(pick(['원래대로', '변신 끝', fill('D-{d} 다시 시작', stats())]), 1800);
   }
   horn() {
@@ -882,6 +895,7 @@ class Pet {
       else if (this.vx < -12) this.facing = -1;
       if (this.morphed) {
         if (now > this.morphUntil) this.unmorph();
+        else if (Math.random() < dt * 0.25) { SFX.play('quack'); this.say('꽥', 900); }
         else {
           const view = speed > 20 ? 'side' : now % 9000 < 1200 ? 'back' : 'front';
           if (view !== this.morphView) {
@@ -1027,6 +1041,7 @@ class Pet {
         danceLean = t > 0.9 && t < 1.2 ? 4 : 1;
         if (!this.torn && t > 0.95) {
           this.torn = true;
+          SFX.play('tear');
           this.breadEl.className = 'bread on torn';
           setTimeout(() => showCard(), 250);
         }
@@ -1046,6 +1061,8 @@ class Pet {
         if (this.wheel) this.wheel.classList.toggle('press', press);
         if (this.honks < 2 && t > [0.35, 1.55][this.honks]) {
           makeBlast(this.x + PW / 2 + (this.honks ? 60 : -60), this.y - 40, '빵빵!');
+          SFX.play('honk');
+          setTimeout(() => SFX.play('honk'), 270);
           this.honks++;
         }
         if (t >= this.actDur) {
@@ -1087,6 +1104,7 @@ class Pet {
             this.slimeEl.remove();
             this.slimeEl = null;
             makeSplats(r.left + 40, r.top + 30, this.slimeColor);
+            SFX.play('splat');
             this.squash = 1;
             this.say('으악 터졌다', 2500);
           }
@@ -1195,6 +1213,7 @@ class Pet {
             const times = [0.3, 2.4, 4.4];
             if (this.blasts < times.length && this.actT >= times[this.blasts]) {
               makeBlast(this.x + PW / 2, this.y - 30, fill(CHEER_SHOUTS[this.blasts], stats()));
+              SFX.play('pop');
               this.blasts++;
               this.squash = 0.7;
             }
@@ -1222,6 +1241,8 @@ class Pet {
             const times = [0.05, 2.6, 3.9];
             if (this.blasts < times.length && this.actT >= times[this.blasts]) {
               makeBlast(this.x + PW / 2, this.y - 30, BLASTS[this.blasts]);
+              SFX.play('whistle');
+              setTimeout(() => SFX.play('whistle'), 200);
               this.blasts++;
               this.squash = 0.7;
             }
@@ -1673,6 +1694,13 @@ window.petWorld = {
   wave: (slot) => { const p = pickPet(slot); if (p) p.wave(); },
   horn: (slot) => { const p = pickPet(slot); if (p) p.horn(); },
   reloadCards: () => { cardPool = null; },
+  milestone: (d) => runMilestone(Number(d)),
+  banner: (o) => {
+    if (o && o.kind === 'random') showBanner({ title: pick(['오늘의 잔소리', '전역 알림', '긴급 공지', '훈련 알림']), body: line() });
+    else showBanner(o || {});
+  },
+  sfx: (n) => SFX.play(n),
+  blast: (t, s) => makeBlast(W() / 2, H() / 2, t || '빵빵!', s),
   bread: (slot) => { const p = pickPet(slot); if (p) p.bread(); },
   morph: (slot) => { const p = pickPet(slot); if (p) { if (p.busy() && !p.morphed) { p.state = 'idle'; } p.morph(); } },
   brush: (slot) => { const p = pickPet(slot); if (p) p.brush(); },

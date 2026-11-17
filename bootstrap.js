@@ -17,6 +17,7 @@ function log(msg) {
   try { fs.appendFileSync(path.join(app.getPath('userData'), 'update.log'), `${new Date().toISOString()} ${msg}\n`); } catch {}
 }
 
+if (process.env.JY_USERDATA) app.setPath('userData', process.env.JY_USERDATA);
 let started = false;
 try {
   const live = path.join(app.getPath('userData'), 'live');

@@ -132,3 +132,71 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 .pcard .rk { padding: 3px 8px; border-radius: 99px; background: #fff; color: #c81d6a; }
 .pcard.rare-SSR .rk { background: #ffd23f; color: #6b3b00; }
 .pcount { position: absolute; left: 50%; bottom: -34px; transform: translateX(-50%); padding: 5px 12px; border-radius: 99px; background: #2b2622; color: #fff; font: 800 13px/1 "Apple SD Gothic Neo", sans-serif; white-space: nowrap; }
+/* blast styles */
+.blast.v-wave span { animation: blast .5s cubic-bezier(.2,1.6,.4,1) both, bob .42s ease-in-out infinite alternate; animation-delay: var(--wd, 0s), calc(var(--wd, 0s) + .4s); }
+@keyframes bob { from { translate: 0 0; } to { translate: 0 -.16em; } }
+.blast.v-arc { color: #7fe3ff; text-shadow: .04em .05em 0 #2b58c8; }
+.blast.v-burst { color: #fff; -webkit-text-stroke: .045em #1d1c18; text-shadow: .05em .06em 0 #1d1c18; }
+.blast .burst-bg { position: absolute; left: 50%; top: 50%; width: 150%; height: 220%; transform: translate(-50%, -50%); z-index: -1; clip-path: polygon(50% 0%, 58% 30%, 82% 6%, 72% 36%, 100% 30%, 78% 50%, 100% 70%, 72% 64%, 82% 94%, 58% 70%, 50% 100%, 42% 70%, 18% 94%, 28% 64%, 0% 70%, 22% 50%, 0% 30%, 28% 36%, 18% 6%, 42% 30%); animation: burstspin .5s cubic-bezier(.2,1.6,.4,1) both; filter: drop-shadow(.05em .06em 0 #1d1c18); }
+@keyframes burstspin { from { transform: translate(-50%, -50%) scale(.1) rotate(-40deg); } to { transform: translate(-50%, -50%) scale(1) rotate(0); } }
+.blast.v-neon { color: #fff; -webkit-text-stroke: 0; text-shadow: 0 0 .04em #fff, 0 0 .12em #ff3df2, 0 0 .3em #ff3df2, 0 0 .55em #39f3ff; font-style: italic; }
+.blast.v-neon span { animation: blast .45s ease-out both, flick 1.1s steps(1) infinite; }
+@keyframes flick { 0%, 100% { opacity: 1; } 8% { opacity: .35; } 10% { opacity: 1; } 52% { opacity: .55; } 54% { opacity: 1; } }
+.blast.v-ransom { -webkit-text-stroke: 0; text-shadow: none; color: #1d1c18; letter-spacing: .04em; }
+.blast.v-ransom span { padding: .02em .1em; border: .04em solid #1d1c18; border-radius: .08em; box-shadow: .05em .06em 0 #1d1c18; margin: 0 .02em; line-height: 1.05; }
+.blast.v-stamp { color: #e0352b; -webkit-text-stroke: 0; text-shadow: none; padding: .05em .25em; border: .09em solid #e0352b; border-radius: .14em; transform: translate(-50%, -50%) rotate(-11deg); animation: stamp .35s cubic-bezier(.3,1.7,.5,1) both, blastfade 1.5s ease-out forwards; mix-blend-mode: multiply; }
+.blast.v-stamp span { animation: none; }
+@keyframes stamp { from { scale: 2.4; opacity: 0; } to { scale: 1; opacity: 1; } }
+.blast.v-extrude { color: #ffe14a; -webkit-text-stroke: .03em #1d1c18; text-shadow: .02em .02em 0 #e8902a, .04em .04em 0 #e8902a, .06em .06em 0 #d06a1c, .08em .08em 0 #d06a1c, .1em .1em 0 #b84e14, .12em .12em 0 #1d1c18, .14em .16em .1em rgba(0,0,0,.35); }
+.blast.v-bubble { color: #ff8fc8; -webkit-text-stroke: .16em #fff; text-shadow: 0 .05em 0 #c95a95, 0 .1em .05em rgba(0,0,0,.25); letter-spacing: -.04em; }
+.blast.v-shake span { animation: blast .4s ease-out both, jit .09s linear infinite; animation-delay: 0s, var(--sd, 0s); }
+@keyframes jit { 0% { translate: .02em 0; } 25% { translate: -.03em .02em; } 50% { translate: .01em -.03em; } 75% { translate: -.02em .01em; } 100% { translate: .02em 0; } }
+
+/* mac-style notification banners */
+#mnotes { position: fixed; top: 34px; right: 14px; width: 356px; display: flex; flex-direction: column; gap: 8px; z-index: 40; pointer-events: none; }
+.mnote { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 18px; background: rgba(246, 246, 246, .82); -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8); box-shadow: 0 0 0 .5px rgba(0,0,0,.12), 0 8px 26px rgba(0,0,0,.18); color: #1d1d1f; font: 13px/1.32 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; transform: translateX(120%); opacity: 0; transition: transform .45s cubic-bezier(.2,1.1,.3,1), opacity .3s; word-break: keep-all; }
+.mnote.in { transform: none; opacity: 1; }
+.mnote.out { transform: translateX(120%); opacity: 0; transition: transform .45s ease-in, opacity .4s; }
+.mn-ic { flex: none; width: 36px; height: 36px; border-radius: 9px; background: linear-gradient(160deg, #8fa64a, #4d5d23); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 .5px rgba(255,255,255,.25); }
+.mn-ic span { color: #fff; font: 800 11px/1 -apple-system, "Apple SD Gothic Neo", sans-serif; letter-spacing: -.03em; }
+.mn-tx { flex: 1; min-width: 0; }
+.mn-hd { display: flex; justify-content: space-between; font-size: 12px; }
+.mn-hd b { font-weight: 600; }
+.mn-hd span { color: rgba(60,60,67,.6); }
+.mn-ti { font-weight: 600; margin-top: 1px; }
+.mn-bd { color: #1d1d1f; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.mn-th { flex: none; width: 38px; height: 50px; object-fit: cover; border-radius: 6px; }
+@media (prefers-color-scheme: dark) {
+  .mnote { background: rgba(40, 40, 40, .78); color: #f5f5f7; box-shadow: 0 0 0 .5px rgba(255,255,255,.12), 0 8px 26px rgba(0,0,0,.4); }
+  .mn-bd { color: #f5f5f7; }
+  .mn-hd span { color: rgba(235,235,245,.6); }
+}
+
+/* D-day milestone celebration */
+.ms-root { position: fixed; inset: 0; z-index: 50; pointer-events: none; background: radial-gradient(ellipse at 50% 55%, rgba(8, 6, 30, .35), rgba(4, 3, 16, .78)); animation: msin .8s ease-out both; }
+.ms-root.out { animation: msout 1.3s ease-in forwards; }
+@keyframes msin { from { opacity: 0; } to { opacity: 1; } }
+@keyframes msout { to { opacity: 0; } }
+.ms-cv { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ms-box { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 1.2vh; }
+.ms-kicker { color: rgba(255, 240, 200, .8); font: 600 1.6vh/1 ui-monospace, Menlo, monospace; letter-spacing: .4em; opacity: 0; animation: msup .6s .3s ease-out both; }
+.ms-odo { display: flex; align-items: center; height: 22vh; font: 900 22vh/1 "Didot", "Bodoni 72", "Times New Roman", serif; letter-spacing: -.02em; filter: drop-shadow(0 0 2.5vh rgba(255, 200, 90, .55)); animation: odoin .9s cubic-bezier(.2,1.2,.3,1) both; }
+@keyframes odoin { from { transform: scale(.3) translateY(20%); opacity: 0; } to { transform: none; opacity: 1; } }
+.ms-ch, .ms-col span { display: block; height: 22vh; background: linear-gradient(180deg, #fff9e0 0%, #ffd76a 38%, #c98a1a 52%, #ffe7a0 70%, #b8770f 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ms-ch { padding: 0 .02em; }
+.ms-col { display: block; height: 22vh; overflow: hidden; }
+.ms-reel { display: block; animation: reel 2.1s cubic-bezier(.12,.75,.15,1) var(--dl) both; }
+@keyframes reel { from { transform: translateY(0); } to { transform: translateY(calc(var(--n) * -22vh)); } }
+.ms-root.landed .ms-odo { animation: land .5s ease-out both; }
+@keyframes land { 0% { transform: scale(1); } 30% { transform: scale(1.08); } 100% { transform: scale(1); } }
+.ms-ribbon { position: relative; padding: 1.1vh 5vh; background: linear-gradient(90deg, #b3121f, #e8323f 50%, #b3121f); color: #fff6dc; font: 800 3.4vh/1.2 -apple-system, "Apple SD Gothic Neo", sans-serif; letter-spacing: .04em; box-shadow: 0 .6vh 0 #6e0a12, 0 1.2vh 3vh rgba(0,0,0,.4); transform: scaleX(0); animation: ribbon .6s 2.2s cubic-bezier(.3,1.5,.5,1) both; }
+.ms-ribbon::before, .ms-ribbon::after { content: ""; position: absolute; top: .9vh; width: 3vh; height: 100%; background: #8e0d17; z-index: -1; }
+.ms-ribbon::before { left: -2.2vh; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 40% 50%); }
+.ms-ribbon::after { right: -2.2vh; clip-path: polygon(0 0, 100% 0, 60% 50%, 100% 100%, 0 100%); }
+@keyframes ribbon { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.ms-sub { color: #fff; font: 600 2.2vh/1.3 -apple-system, "Apple SD Gothic Neo", sans-serif; text-shadow: 0 .2vh 1vh rgba(0,0,0,.6); opacity: 0; animation: msup .6s 2.6s ease-out both; }
+@keyframes msup { from { opacity: 0; transform: translateY(1.5vh); } to { opacity: 1; transform: none; } }
+.ms-box::after { content: ""; position: absolute; left: -20%; top: 18%; width: 30%; height: 40%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); transform: skewX(-20deg); mix-blend-mode: overlay; animation: sweep 1.2s 2.4s ease-in-out both; opacity: 0; }
+@keyframes sweep { 0% { left: -20%; opacity: 0; } 20% { opacity: 1; } 100% { left: 110%; opacity: 0; } }
+.ms-root.dday .ms-ribbon { background: linear-gradient(90deg, #0d5c2f, #1fa35a 50%, #0d5c2f); box-shadow: 0 .6vh 0 #063a1d, 0 1.2vh 3vh rgba(0,0,0,.4); }
+.ms-root.dday .ms-ribbon::before, .ms-root.dday .ms-ribbon::after { background: #0a4a25; }

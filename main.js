@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, dialog, protocol, globalShortcut, clipboard: elClipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, dialog, protocol, globalShortcut, clipboard: elClipboard, shell, ShareMenu } = require('electron');
 const updater = require('./updater');
 const { execFile, execFileSync } = require('child_process');
 const os = require('os');
@@ -15,6 +15,7 @@ const petHome = { a: null, b: null };
 let started = false;
 
 app.commandLine.appendSwitch('enable-experimental-web-platform-features');
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 let setupWin = null;
 let tray = null;
 
@@ -109,6 +110,7 @@ function openSetup() {
 
 function broadcast(channel, data) {
   for (const w of overlays.values()) if (!w.isDestroyed()) w.webContents.send(channel, data);
+  if (typeof settingsWin !== 'undefined' && settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('settings-refresh');
 }
 
 function createOverlay(display) {
@@ -452,6 +454,7 @@ async function frameShot(file) {
       const out4 = path.join(path.dirname(files[files.length - 1]), `${label} ${n4.getFullYear()}-${p2(n4.getMonth() + 1)}-${p2(n4.getDate())} ${p2(n4.getHours())}.${p2(n4.getMinutes())}.${p2(n4.getSeconds())}.png`);
       framed.add(out4);
       fs.writeFileSync(out4, Buffer.from(url4.split(',')[1], 'base64'));
+      openShare(out4);
       return;
     }
     const n = new Date();
@@ -466,6 +469,7 @@ async function frameShot(file) {
     const out = file.replace(/\.png$/i, ' 포토이즘.png');
     framed.add(out);
     fs.writeFileSync(out, Buffer.from(url.split(',')[1], 'base64'));
+    openShare(out);
   } catch (e) {
     // 원본 스크린샷은 그대로 둠
   }
@@ -605,68 +609,20 @@ function buildMenu() {
   const menu = Menu.buildFromTemplate([
     { label: '캐릭터 켜기', type: 'checkbox', checked: cfg.enabled !== false, click: (i) => patchConfig({ enabled: i.checked }) },
     { type: 'separator' },
-    { label: '동작', submenu: ACTIONS.map(([l, k]) => ({ label: l, click: () => sendToPet(k) })) },
-    { label: '춤', submenu: DANCE_ITEMS.map(([l, k]) => ({ label: l, click: () => sendToPet(k) })) },
-    {
-      label: '모드',
-      submenu: [
-        { label: '걷기 모드', type: 'radio', checked: (cfg.mode || 'walk') !== 'fairy', click: () => patchConfig({ mode: 'walk' }) },
-        { label: '요정 모드', type: 'radio', checked: cfg.mode === 'fairy', click: () => patchConfig({ mode: 'fairy' }) },
-      ],
-    },
+    { label: '동작', submenu: [...ACTIONS.map(([l, k]) => ({ label: l, click: () => sendToPet(k) })), { type: 'separator' }, ...DANCE_ITEMS.map(([l, k]) => ({ label: l, click: () => sendToPet(k) }))] },
     {
       label: '캡쳐 모드',
       submenu: [
         { label: '일반 모드', type: 'radio', checked: (cfg.capture || 'normal') === 'normal', click: () => patchConfig({ capture: 'normal' }) },
-        { label: '업무 모드 (캡쳐에 안 찍힘)', type: 'radio', checked: cfg.capture === 'work', click: () => patchConfig({ capture: 'work' }) },
-        { label: '포토이즘 모드 (캡쳐에 프레임)', type: 'radio', checked: cfg.capture === 'photo', click: () => patchConfig({ capture: 'photo' }) },
+        { label: '업무 모드', type: 'radio', checked: cfg.capture === 'work', click: () => patchConfig({ capture: 'work' }) },
+        { label: '포토이즘 모드', type: 'radio', checked: cfg.capture === 'photo', click: () => patchConfig({ capture: 'photo' }) },
         { type: 'separator' },
         { label: '캐릭터 빼고 지금 캡쳐', click: () => hiddenCapture(['-i'], false) },
-        ...(cfg.capture === 'work' && shortcutState === 0 ? [{ label: '단축키를 못 가져옴: 시스템 스크린샷 단축키를 끄면 동작', enabled: false }] : []),
       ],
     },
-    {
-      label: '포토이즘 프레임',
-      submenu: [
-        ...Object.entries(FRAME_STYLES).map(([k, v]) => ({
-          label: v, type: 'radio', checked: (cfg.frameStyle || 'white') === k,
-          click: () => patchConfig({ frameStyle: k, capture: 'photo' }),
-        })),
-        { label: '내 이미지', type: 'radio', enabled: !!cfg.frameFile, checked: cfg.frameStyle === 'custom', click: () => patchConfig({ frameStyle: 'custom', capture: 'photo' }) },
-        { type: 'separator' },
-        { label: '한 컷', submenu: CUT_STYLES.map(([k, v]) => layoutItem(k === 'basic' ? 'single' : `c1-${k}`, v)) },
-        { label: '두 컷', submenu: CUT_STYLES.map(([k, v]) => layoutItem(k === 'basic' ? 'two' : `c2-${k}`, v)) },
-        { label: '네 컷', submenu: [['strip', '기본 색 세로'], ['grid', '기본 색 2x2'], ...CUT_STYLES.filter(([k]) => k !== 'basic').map(([k, v]) => [FOUR_OF[k], v])].map(([k, v]) => layoutItem(k, v)) },
-        { label: `현재: ${layoutName(cfg.frameLayout)}`, enabled: false },
-        { label: '모은 사진 버리고 처음부터', enabled: fourQueue.length > 0, click: () => { fourQueue = []; updateTray(); buildMenu(); } },
-        { type: 'separator' },
-        { label: '화면에도 프레임 표시', type: 'checkbox', checked: !!cfg.frameOnScreen, click: (i) => patchConfig({ frameOnScreen: i.checked }) },
-        { label: '내 프레임 이미지 고르기', click: pickFrame },
-      ],
-    },
-    { label: `${SLOT_NAMES.a} 옷`, submenu: outfitMenu('a') },
-    { label: `${SLOT_NAMES.b} 옷`, submenu: outfitMenu('b') },
-    { label: '포토카드 사진 추가', click: () => addCards() },
-    {
-      label: '얼굴 바꾸기',
-      submenu: [
-        { label: `${SLOT_NAMES.a} 사진 고르기`, click: () => pickFace('a') },
-        { label: `${SLOT_NAMES.a} 얼굴 위치 맞추기`, click: () => adjustFace('a') },
-        { type: 'separator' },
-        { label: `${SLOT_NAMES.b} 사진 고르기`, click: () => pickFace('b') },
-        { label: `${SLOT_NAMES.b} 얼굴 위치 맞추기`, click: () => adjustFace('b') },
-        { type: 'separator' },
-        { label: '원래 얼굴로 되돌리기', click: () => { setFace('a', null); setFace('b', null); } },
-      ],
-    },
-    { label: '전역일 변경', click: openSetup },
+    { label: '포토카드 도감', click: () => openSettings('cards') },
+    { label: '설정…', accelerator: 'Command+,', click: () => openSettings() },
     { type: 'separator' },
-    {
-      label: '로그인 시 자동 실행',
-      type: 'checkbox',
-      checked: app.getLoginItemSettings().openAtLogin,
-      click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
-    },
     ...updater.menuItems(),
     { label: '업데이트 내역', click: () => openChangelog() },
     { label: `버전 ${updater.version}`, enabled: false },
@@ -822,6 +778,284 @@ async function addCards() {
   for (const w of overlays.values()) if (!w.isDestroyed()) w.webContents.send('cards-updated');
 }
 
+/* ---------- 설정 창 ---------- */
+let settingsWin = null;
+let settingsTab = 'general';
+function openSettings(tab) {
+  settingsTab = tab || settingsTab || 'general';
+  if (settingsWin && !settingsWin.isDestroyed()) {
+    settingsWin.webContents.send('settings-tab', settingsTab);
+    settingsWin.show();
+    settingsWin.focus();
+    app.focus({ steal: true });
+    return;
+  }
+  const mac = process.platform === 'darwin';
+  settingsWin = new BrowserWindow({
+    width: 820,
+    height: 600,
+    minWidth: 700,
+    minHeight: 480,
+    title: '설정',
+    show: false,
+    ...(mac ? { titleBarStyle: 'hiddenInset', vibrancy: 'sidebar', visualEffectState: 'active', backgroundColor: '#00000000' } : {}),
+    webPreferences: { preload: path.join(__dirname, 'preload.js') },
+  });
+  settingsWin.loadFile(path.join(__dirname, 'settings.html'), { search: `tab=${settingsTab}${mac ? '&vibrancy=1' : ''}` });
+  settingsWin.once('ready-to-show', () => settingsWin && settingsWin.show());
+  settingsWin.on('closed', () => { settingsWin = null; });
+  app.focus({ steal: true });
+}
+function primaryOverlay() {
+  const id = screen.getPrimaryDisplay().id;
+  const w = overlays.get(id) || [...overlays.values()][0];
+  return w && !w.isDestroyed() ? w : null;
+}
+function sendPrimary(ch, data) {
+  const w = primaryOverlay();
+  if (w) w.webContents.send(ch, data);
+}
+function sendAction(k) {
+  const slot = Math.random() < 0.5 ? 'a' : 'b';
+  const w = overlays.get(petHome[slot]) || primaryOverlay();
+  if (w && !w.isDestroyed()) w.webContents.send(k, slot);
+}
+ipcMain.handle('settings-data', () => ({
+  cfg: loadConfig() || {},
+  version: updater.version,
+  update: updater.status(),
+  login: app.getLoginItemSettings().openAtLogin,
+  slots: SLOT_NAMES,
+  outfits: OUTFIT_NAMES,
+  actions: ACTIONS,
+  dances: DANCE_ITEMS,
+  frameStyles: FRAME_STYLES,
+  cutStyles: CUT_STYLES,
+  fourOf: FOUR_OF,
+  layoutNames: LAYOUT_NAMES,
+  queue: fourQueue.length,
+  shortcutState,
+  days: daysLeft(loadConfig()),
+  milestones: [800, 700, 600, 500, 400, 300, 200, 100, 50, 30, 10, 7, 3, 1, 0],
+}));
+ipcMain.handle('settings-patch', (_e, patch) => { patchConfig(patch); return true; });
+ipcMain.handle('settings-do', async (_e, cmd, arg) => {
+  switch (cmd) {
+    case 'action': sendAction(arg); break;
+    case 'pickFace': pickFace(arg); break;
+    case 'adjustFace': adjustFace(arg); break;
+    case 'resetFace': setFace('a', null); setFace('b', null); break;
+    case 'setup': openSetup(); break;
+    case 'pickFrame': pickFrame(); break;
+    case 'addCards': await addCards(); break;
+    case 'capture': hiddenCapture(['-i'], false); break;
+    case 'checkUpdate': updater.check(true); break;
+    case 'installUpdate': updater.install(); break;
+    case 'changelog': openChangelog(); break;
+    case 'resetQueue': fourQueue = []; updateTray(); buildMenu(); break;
+    case 'login': app.setLoginItemSettings({ openAtLogin: !!arg }); buildMenu(); break;
+    case 'diag': elClipboard.writeText(diagnostics()); return true;
+    case 'logs': shell.openPath(app.getPath('userData')); break;
+    case 'milestone': sendPrimary('milestone', arg); break;
+    case 'banner': sendPrimary('banner', { kind: 'random' }); break;
+    case 'faceThumb': {
+      const f = normFace(((loadConfig() || {}).faces || {})[arg]);
+      return f ? fileToDataUrl(f.file) : null;
+    }
+    default: break;
+  }
+  return true;
+});
+ipcMain.handle('card-collection', async () => {
+  const cfg = loadConfig() || {};
+  const seen = cfg.cards || {};
+  const all = [];
+  const add = (dir, prefix) => {
+    try {
+      for (const n of fs.readdirSync(dir).sort()) {
+        if (!/\.(jpe?g|png|webp|gif)$/i.test(n)) continue;
+        const id = prefix + n;
+        const s = seen[id];
+        all.push({ id, n: s ? s.n : 0, best: s ? s.best : null, first: s ? s.first : null, url: s ? fileToDataUrl(path.join(dir, n)) : null });
+      }
+    } catch {}
+  };
+  add(path.join(__dirname, 'frames', 'cards'), 'b:');
+  add(cardsDir(), 'u:');
+  return all;
+});
+const RANK = { N: 0, R: 1, SR: 2, SSR: 3 };
+ipcMain.handle('card-record', (_e, id, rare) => {
+  const cfg = loadConfig() || {};
+  const cards = { ...(cfg.cards || {}) };
+  const prev = cards[id];
+  cards[id] = { n: (prev ? prev.n : 0) + 1, best: prev && RANK[prev.best] >= RANK[rare] ? prev.best : rare, first: prev ? prev.first : Date.now() };
+  saveConfig({ ...cfg, cards });
+  if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('settings-refresh');
+  return { isNew: !prev, count: Object.keys(cards).length };
+});
+
+/* ---------- 네컷 결과 공유 창 ---------- */
+let shareWin = null;
+let shareFile = null;
+function openShare(file) {
+  const cfg = loadConfig() || {};
+  if (cfg.shareWindow === false || process.env.JY_SELFTEST) return;
+  shareFile = file;
+  if (shareWin && !shareWin.isDestroyed()) { shareWin.reload(); shareWin.showInactive(); return; }
+  const wa = screen.getPrimaryDisplay().workArea;
+  const mac = process.platform === 'darwin';
+  shareWin = new BrowserWindow({
+    width: 300,
+    height: 420,
+    x: wa.x + wa.width - 316,
+    y: wa.y + 12,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    alwaysOnTop: true,
+    title: '',
+    show: false,
+    ...(mac ? { titleBarStyle: 'hiddenInset', vibrancy: 'popover', visualEffectState: 'active', backgroundColor: '#00000000' } : {}),
+    webPreferences: { preload: path.join(__dirname, 'preload.js') },
+  });
+  shareWin.loadFile(path.join(__dirname, 'share.html'), { search: mac ? 'vibrancy=1' : '' });
+  shareWin.once('ready-to-show', () => shareWin && shareWin.showInactive());
+  shareWin.on('closed', () => { shareWin = null; });
+}
+ipcMain.handle('share-data', () => (shareFile ? { name: path.basename(shareFile), url: fileToDataUrl(shareFile) } : null));
+ipcMain.handle('share-do', (e, cmd) => {
+  if (!shareFile) return false;
+  if (cmd === 'copy') { elClipboard.writeImage(nativeImage.createFromPath(shareFile)); return true; }
+  if (cmd === 'finder') { shell.showItemInFolder(shareFile); return true; }
+  if (cmd === 'share' && ShareMenu) {
+    const w = BrowserWindow.fromWebContents(e.sender);
+    new ShareMenu({ filePaths: [shareFile] }).popup({ window: w });
+    return true;
+  }
+  if (cmd === 'open') { shell.openPath(shareFile); return true; }
+  if (cmd === 'close' && shareWin) shareWin.close();
+  return true;
+});
+
+/* ---------- 문제 보내기용 정보 ---------- */
+const errLogPath = () => path.join(app.getPath('userData'), 'error.log');
+function logError(msg) {
+  try { fs.appendFileSync(errLogPath(), `${new Date().toISOString()} ${String(msg).slice(0, 2000)}\n`); } catch {}
+}
+process.on('uncaughtException', (e) => logError('main: ' + (e && e.stack || e)));
+process.on('unhandledRejection', (e) => logError('main: ' + (e && e.stack || e)));
+ipcMain.on('log-error', (_e, msg) => logError(msg));
+function tail(file, n) {
+  try { return fs.readFileSync(file, 'utf8').trim().split('\n').slice(-n).join('\n'); } catch { return '(없음)'; }
+}
+function diagnostics() {
+  const cfg = loadConfig() || {};
+  const safe = { discharge: cfg.discharge, mode: cfg.mode, capture: cfg.capture, frameStyle: cfg.frameStyle, frameLayout: cfg.frameLayout, enabled: cfg.enabled, sound: cfg.sound, banners: cfg.banners, outfits: cfg.outfits, faces: Object.keys(cfg.faces || {}), cards: Object.keys(cfg.cards || {}).length };
+  return [
+    `전역까지 ${updater.version} (번들 ${require('./package.json').version}, 경로 ${__dirname.includes('live') ? 'live' : 'bundle'})`,
+    `macOS ${process.getSystemVersion ? process.getSystemVersion() : os.release()} ${process.arch}, Electron ${process.versions.electron}`,
+    `모니터 ${screen.getAllDisplays().length}대, 업무 모드 단축키 ${shortcutState}`,
+    `설정 ${JSON.stringify(safe)}`,
+    '', '[오류 기록]', tail(errLogPath(), 40),
+    '', '[업데이트 기록]', tail(path.join(app.getPath('userData'), 'update.log'), 20),
+  ].join('\n');
+}
+
+/* ---------- D-day 기념일, 알림 배너 ---------- */
+const MILESTONE_DAYS = [800, 700, 600, 500, 400, 300, 200, 100, 50, 30, 10, 7, 3, 1, 0];
+function todayKey() { const n = new Date(); return `${n.getFullYear()}-${n.getMonth() + 1}-${n.getDate()}`; }
+function checkMilestone() {
+  const cfg = loadConfig() || {};
+  if (cfg.enabled === false || !started) return;
+  const d = daysLeft(cfg);
+  if (d === null || !MILESTONE_DAYS.includes(d)) return;
+  const key = `${cfg.discharge}:${d}`;
+  if (cfg.milestoneDone === key) return;
+  saveConfig({ ...cfg, milestoneDone: key });
+  sendPrimary('milestone', d);
+}
+function greetToday() {
+  const cfg = loadConfig() || {};
+  if (cfg.enabled === false || cfg.banners === false || !started) return;
+  if (cfg.lastGreet === todayKey()) return;
+  saveConfig({ ...cfg, lastGreet: todayKey() });
+  const d = daysLeft(cfg);
+  if (d === null) return;
+  const body = d > 0 ? `오늘은 D-${d}. 오늘도 ${d}일 중 하루 줄었다` : d === 0 ? '오늘 전역합니다' : `전역하고 ${-d}일 지났다`;
+  sendPrimary('banner', { title: '좋은 아침', body });
+}
+function scheduleBanner() {
+  const cfg = loadConfig() || {};
+  const freq = cfg.bannerFreq || 'normal';
+  const mins = freq === 'low' ? [45, 90] : freq === 'high' ? [8, 18] : [20, 40];
+  setTimeout(() => {
+    const c = loadConfig() || {};
+    if (started && c.enabled !== false && c.banners !== false) sendPrimary('banner', { kind: 'random' });
+    scheduleBanner();
+  }, (mins[0] + Math.random() * (mins[1] - mins[0])) * 60000);
+}
+
+/* ---------- 실제 Mac 자동 점검 (GitHub Actions) ---------- */
+async function runSelftest() {
+  const out = process.env.JY_OUT || path.join(os.tmpdir(), 'jy-selftest');
+  fs.mkdirSync(out, { recursive: true });
+  const res = { version: updater.version, path: __dirname, errors: [], checks: {} };
+  const done = (code) => { fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify(res, null, 2)); app.exit(code); };
+  setTimeout(() => { res.errors.push('timeout'); done(1); }, 170000);
+  if (process.env.JY_SELFTEST === 'version') return done(0);
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const cap = async (w, name) => { const img = await w.webContents.capturePage(); fs.writeFileSync(path.join(out, name + '.png'), img.toPNG()); };
+  try {
+    for (let i = 0; i < 60 && ![...overlays.values()].some((w) => w.ready); i++) await wait(500);
+    const ov = primaryOverlay();
+    res.checks.overlay = !!(ov && ov.ready);
+    for (const w of overlays.values()) w.webContents.on('console-message', (_e, level, msg) => { if (level >= 3) res.errors.push('overlay console: ' + msg); });
+    await wait(2500);
+    await cap(ov, 'overlay');
+    for (const [k, t] of [['bread', 3200], ['horn', 2400], ['morph', 1800]]) { ov.webContents.send(k, 'a'); await wait(t); await cap(ov, 'act-' + k); }
+    ov.webContents.send('banner', { title: '자동 점검', body: '알림 배너 표시 확인' });
+    await wait(900);
+    await cap(ov, 'banner');
+    ov.webContents.send('milestone', 700);
+    await wait(3600);
+    await cap(ov, 'milestone');
+    await wait(9000);
+    const f = await getFramer();
+    const shotDirs = path.join(__dirname, 'frames', 'cards');
+    const shots = fs.readdirSync(shotDirs).slice(0, 4).map((n) => fileToDataUrl(path.join(shotDirs, n)));
+    const assets = frameAssets();
+    const themes = ['c1-trot', 'c2-holo', 'rescene', 'gystrip', 'rspulse', 'rsstage'];
+    for (const th of themes) {
+      const url = await f.webContents.executeJavaScript(`frameTheme(${JSON.stringify({ shots, theme: th, assets, dday: 'D-180', date: '2026.11.17' })})`);
+      fs.writeFileSync(path.join(out, `frame-${th}.png`), Buffer.from(url.split(',')[1], 'base64'));
+    }
+    const u2 = await f.webContents.executeJavaScript(`frameFour(${JSON.stringify({ shots, layout: 'strip', style: 'pink', dday: 'D-180', date: '2026.11.17' })})`);
+    fs.writeFileSync(path.join(out, 'frame-strip.png'), Buffer.from(u2.split(',')[1], 'base64'));
+    res.checks.frames = themes.length + 1;
+    openSettings('general');
+    await wait(2500);
+    for (const tab of ['general', 'character', 'frame', 'cards', 'update']) { settingsWin.webContents.send('settings-tab', tab); await wait(900); await cap(settingsWin, 'settings-' + tab); }
+    openChangelog();
+    await wait(1800);
+    await cap(changelogWin, 'changelog');
+    shareFile = path.join(out, 'frame-strip.png');
+    process.env.JY_SELFTEST_SHARE = '1';
+    const keep = process.env.JY_SELFTEST;
+    delete process.env.JY_SELFTEST;
+    openShare(shareFile);
+    process.env.JY_SELFTEST = keep;
+    await wait(1800);
+    if (shareWin) await cap(shareWin, 'share');
+    res.checks.diagnostics = diagnostics().split('\n')[0];
+    try { res.errorLog = fs.readFileSync(errLogPath(), 'utf8'); } catch {}
+    done(res.errors.length || res.errorLog ? 1 : 0);
+  } catch (e) {
+    res.errors.push(String(e && e.stack || e));
+    done(1);
+  }
+}
+
 app.whenReady().then(() => {
   updater.start(() => buildMenu());
   {
@@ -847,6 +1081,10 @@ app.whenReady().then(() => {
   else openSetup();
   applyShortcuts();
   buildMenu();
+  setTimeout(() => { greetToday(); checkMilestone(); }, 7000);
+  setInterval(checkMilestone, 30 * 60000);
+  scheduleBanner();
+  if (process.env.JY_SELFTEST) runSelftest();
 });
 
 app.on('will-quit', () => globalShortcut.unregisterAll());

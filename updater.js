@@ -148,4 +148,4 @@ function start(changed) {
   setInterval(() => check(false), 30 * 60 * 1000);
 }
 
-module.exports = { start, check, install, menuItems, version: VERSION, hasUpdate: () => !!state.latest };
+module.exports = { start, check, install, menuItems, version: VERSION, hasUpdate: () => !!state.latest, status: () => ({ latest: state.latest, checking: state.checking, busy: state.busy, error: state.error }) };

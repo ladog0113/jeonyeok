@@ -18,6 +18,7 @@ window.petEnv = {
   setIgnore: (v) => window.api.setIgnore(v),
   petExit: (info) => window.api.petExit(info),
   cardList: () => window.api.cardList(),
+  recordCard: (id, rare) => window.api.recordCard(id, rare),
   frameFor: async (cfg) => (cfg.frameFile ? window.api.frameData() : null),
   faceFor: async (slot, cfg) => {
     const f = normFace((cfg.faces || {})[slot]);
@@ -30,6 +31,7 @@ window.petEnv = {
 };
 </script>
 <script src="character.js"></script>
+<script src="fx.js"></script>
 <script src="pets.js"></script>
 <script>
 window.api.on('poke', (slot) => petWorld.poke(slot));
@@ -39,6 +41,10 @@ window.api.on('spawn', (info) => petWorld.spawn(info));
 window.api.on('screens', (n) => petWorld.setScreens(n));
 window.api.on('config-updated', (c) => petWorld.setConfig(c));
 window.api.on('cards-updated', () => petWorld.reloadCards());
+window.api.on('milestone', (d) => petWorld.milestone(d));
+window.api.on('banner', (o) => petWorld.banner(o));
+window.addEventListener('error', (e) => window.api.logError(`overlay: ${e.message} @ ${e.filename}:${e.lineno}`));
+window.addEventListener('unhandledrejection', (e) => window.api.logError(`overlay: ${(e.reason && (e.reason.stack || e.reason.message)) || e.reason}`));
 window.api.init().then((info) => petWorld.start(info.cfg, info.pets, info.screens));
 </script>
 </body>

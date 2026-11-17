@@ -8,6 +8,14 @@ contextBridge.exposeInMainWorld('api', {
   frameData: () => ipcRenderer.invoke('frame-data'),
   cardList: () => ipcRenderer.invoke('card-list'),
   changelogData: () => ipcRenderer.invoke('changelog-data'),
+  recordCard: (id, rare) => ipcRenderer.invoke('card-record', id, rare),
+  logError: (msg) => ipcRenderer.send('log-error', msg),
+  settingsData: () => ipcRenderer.invoke('settings-data'),
+  settingsPatch: (p) => ipcRenderer.invoke('settings-patch', p),
+  settingsDo: (cmd, arg) => ipcRenderer.invoke('settings-do', cmd, arg),
+  cardCollection: () => ipcRenderer.invoke('card-collection'),
+  shareData: () => ipcRenderer.invoke('share-data'),
+  shareDo: (cmd) => ipcRenderer.invoke('share-do', cmd),
   setIgnore: (ignore) => ipcRenderer.send('set-ignore', ignore),
   petExit: (info) => ipcRenderer.send('pet-exit', info),
   editorInit: () => ipcRenderer.invoke('face-editor-init'),
@@ -15,7 +23,7 @@ contextBridge.exposeInMainWorld('api', {
   editorCancel: () => ipcRenderer.invoke('face-editor-cancel'),
   editorRepick: () => ipcRenderer.invoke('face-editor-repick'),
   on: (channel, fn) => {
-    if (['poke', 'smash', 'spin', 'dance', 'neon', 'whistle', 'shimmy', 'heart', 'power', 'cheer', 'sign', 'slime', 'sleep', 'brush', 'flip', 'pop', 'rest', 'stretch', 'wave', 'horn', 'bread', 'morph', 'clone', 'toe', 'star', 'grip', 'scribble', 'spawn', 'screens', 'config-updated', 'cards-updated'].includes(channel)) {
+    if (['poke', 'smash', 'spin', 'dance', 'neon', 'whistle', 'shimmy', 'heart', 'power', 'cheer', 'sign', 'slime', 'sleep', 'brush', 'flip', 'pop', 'rest', 'stretch', 'wave', 'horn', 'bread', 'morph', 'clone', 'toe', 'star', 'grip', 'scribble', 'spawn', 'screens', 'config-updated', 'cards-updated', 'milestone', 'banner', 'settings-refresh', 'settings-tab'].includes(channel)) {
       ipcRenderer.on(channel, (_e, data) => fn(data));
     }
   },
