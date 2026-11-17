@@ -336,6 +336,118 @@
     setTimeout(() => { s.classList.add('melt'); setTimeout(() => s.remove(), 1500); }, 40000);
   }
 
+
+  /* ---------- 캐릭터끼리 대화 ---------- */
+  const TALK = [
+    // [조건, 대본] 대본은 번갈아 말함. {키}는 stats 값
+    [(c) => c.s.payIn === 0, [
+      ['오늘 월급날이다', '들어왔냐', '들어왔다 나갔다', '카드값이 먼저 알았네'],
+      ['월급 들어옴', '치킨?', '치킨은 전역날 먹기로 했잖아', '오늘도 전역날이라 치자'],
+    ]],
+    [(c) => c.s.payIn > 0 && c.s.payIn <= 5, [
+      ['월급 언제냐', '{payText}', '{payIn}일을 어떻게 버티냐', '버티는 건 전역까지 {d}일로 단련됨'],
+      ['통장 잔고 봤냐', '안 봄. 무서움', '{payText}면 들어온다', '그때까지 숨만 쉬자'],
+    ]],
+    [(c) => c.wd === 5 && c.h >= 12 && c.h < 17, [
+      ['오늘 금요일이다', '퇴근까지 {offText}', '주말 계획 있냐', '누워 있기', '완벽한 계획이다'],
+      ['불금이다', '불은 무슨 퇴근이나 하자', '퇴근까지 {offText}', '그 시간 동안 일하는 척 가능?', '프로라서 가능'],
+    ]],
+    [(c) => c.wd === 1 && c.h < 12, [
+      ['월요일이네', '말 걸지 마', '남은 주말 {weekends}번', '그 말 들으니 좀 살 것 같다'],
+      ['주말 순삭', '원래 주말은 압축 파일임', '풀면 다시 월요일', '전역하면 매일 주말'],
+    ]],
+    [(c) => c.wd >= 1 && c.wd <= 5 && c.s.offMins > 0 && c.s.offMins <= 60, [
+      ['퇴근까지 {offText}', '가방 싸도 되냐', '아직 이르다', '마음은 이미 지하철'],
+      ['몇 분 남았지', '{offText}', '시계 고장 난 거 아니냐', '시계는 멀쩡함. 시간이 느린 거임'],
+    ]],
+    [(c) => c.wd >= 1 && c.wd <= 5 && c.s.offMins <= 0 && c.h < 22, [
+      ['아직 회사냐', '퇴근했다 치자', '불 꺼라', '남은 퇴근 {workdays}번'],
+    ]],
+    [(c) => c.wd >= 1 && c.wd <= 5 && c.h * 60 + c.m >= 690 && c.h < 13, [
+      ['점심 뭐 먹냐', '군대리아', '여기 회사임', '그럼 김치찌개'],
+      ['배고프다', '남은 짬밥 {meals}끼', '그거 다 먹으면 전역?', '그거 다 먹으면 전역'],
+    ]],
+    [(c) => c.h >= 6 && c.h < 10 && c.wd >= 1 && c.wd <= 5, [
+      ['굿모닝', '모닝은 굿하지 않음', '전역까지 {d}일', '그건 좀 굿하네'],
+      ['커피 마셨냐', '두 잔', '심장 괜찮냐', '퇴근까지 버티라고 뛰는 중'],
+    ]],
+    [(c) => c.h >= 22 || c.h < 5, [
+      ['이 시간에 뭐 하냐', '너는', '야근', '나도', '같이 퇴근하자'],
+      ['자야 되는데', '내일 출근', '전역까지 {d}일', '그럼 진짜 자야 됨'],
+    ]],
+    [(c) => c.wx === 'rain' || c.wx === 'thunder', [
+      ['비 온다', '우산 챙겼냐', '들고 있잖아', '그거 내 거 아니냐'],
+      ['비 오니까 퇴근하기 싫다', '출근은 하고 싶었냐', '그건 아님', '그럼 그냥 다 싫은 거네'],
+    ]],
+    [(c) => c.wx === 'snow', [
+      ['눈 온다', '눈사람 만들까', '전역하고 만들자', '{d}일 뒤에 눈 안 올 수도 있음', '그럼 지금 만들자'],
+    ]],
+    [(c) => c.hungry, [
+      ['배고프다', '밥 달라고 해', '누구한테', '화면 앞에 있는 사람한테', '밥 주세요'],
+    ]],
+    [(c) => c.sulky, [
+      ['왜 그러냐', '흥', '쓰다듬어 달라고 해봐', '안 해. 알아서 해줘야지'],
+    ]],
+    [(c) => c.s.d > 0 && c.s.d % 100 <= 3 && c.s.d > 3, [
+      ['곧 D-{round}다', '{d}일 남았는데', '반올림하면 {round}', '반올림 금지'],
+    ]],
+    [(c) => c.s.d > 0, [
+      ['전역까지 며칠이냐', '{d}일', '어제도 물어봤는데', '어제는 하루 더 많았지'],
+      ['전역하면 뭐 할 거냐', '늦잠', '그 다음은', '또 늦잠'],
+      ['우리 몇 번 퇴근하면 되냐', '{workdays}번', '주말은', '{weekends}번', '숫자로 들으니까 할 만한데'],
+      ['남은 월급 {paydays}번', '그걸로 전역 선물 사자', '뭐 살 건데', '퇴사 선물'],
+      ['너 오늘 뭐 했냐', '화면 깼다', '그거 일이냐', '내 업무임'],
+      ['포토카드 몇 장 모았냐', '비밀', '나 SSR 있음', '거짓말'],
+      ['정각마다 소리 지르는 거 너냐', '시계 들고 있으면 나도 모르게', '다음 정각엔 내가 할게', '시계는 내 거임'],
+    ]],
+  ];
+  function talkCtx() {
+    const n = new Date();
+    const s = stats();
+    const ps = list();
+    const cs = ps.map((p) => care[p.slot]).filter(Boolean);
+    return {
+      s: { ...s, round: Math.round(s.d / 100) * 100 },
+      h: n.getHours(), m: n.getMinutes(), wd: n.getDay(),
+      wx: weather && weather.kind,
+      hungry: cs.some((c) => c.food < 25),
+      sulky: cs.some((c) => c.mood < 20),
+    };
+  }
+  let lastTalk = '';
+  function pickTalk() {
+    const c = talkCtx();
+    const hits = TALK.filter(([cond]) => { try { return cond(c); } catch { return false; } });
+    if (!hits.length) return null;
+    // 상황에 맞는 대본을 먼저, 일반 대본은 가끔
+    const special = hits.filter((h) => h !== TALK[TALK.length - 1]);
+    const pool = special.length && Math.random() < 0.75 ? special : hits;
+    const scripts = pick(pool)[1].filter((sc) => sc[0] !== lastTalk);
+    const sc = pick(scripts.length ? scripts : pick(pool)[1]);
+    lastTalk = sc[0];
+    return sc.map((t) => fill(t, c.s));
+  }
+  function runTalk(l, r) {
+    const lines = pickTalk();
+    if (!lines) return;
+    const first = Math.random() < 0.5 ? l : r;
+    const second = first === l ? r : l;
+    const both = [first, second];
+    const n0 = performance.now();
+    both.forEach((p) => { p.state = 'idle'; p.vx = p.vy = 0; p.talking = true; p.until = n0 + lines.length * 2500 + 1500; });
+    setTimeout(() => both.forEach((p) => { p.talking = false; if (p.state === 'idle') p.until = performance.now() + 1200; }), lines.length * 2500 + 300);
+    lines.forEach((t, i) => {
+      setTimeout(() => {
+        const sp = both[i % 2], other = both[(i + 1) % 2];
+        if (!sp.el.isConnected || sp.state === 'drag' || other.state === 'drag' || sp.state === 'leave') return;
+        sp.facing = other.x > sp.x ? 1 : -1;
+        other.facing = -sp.facing;
+        sp.say(t, 2300);
+      }, i * 2500);
+    });
+  }
+  window.jyTalk = runTalk;
+
   /* ---------- 연결 ---------- */
   const W0 = window.petWorld;
   Object.assign(W0, {
@@ -346,6 +458,7 @@
     trash: (slot) => trashRun(pickPet(slot)),
     weather: (w) => { weather = w; },
     careOf: () => care,
+    talk: () => duoAct('talk'),
   });
   const origStart = W0.start;
   W0.start = function (...args) {

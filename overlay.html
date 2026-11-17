@@ -40,7 +40,7 @@ window.petEnv = {
 <script>
 window.api.on('poke', (slot) => petWorld.poke(slot));
 window.api.on('smash', (slot) => petWorld.smash(slot));
-for (const k of ['spin', 'dance', 'neon', 'whistle', 'shimmy', 'heart', 'power', 'cheer', 'sign', 'slime', 'sleep', 'brush', 'flip', 'pop', 'rest', 'stretch', 'wave', 'horn', 'chime', 'bread', 'morph', 'receipt', 'hi5', 'rps', 'tag', 'nap', 'life', 'acryl', 'feed', 'petpet', 'steal', 'trash', 'weather', 'clone', 'toe', 'star', 'grip', 'scribble']) window.api.on(k, (slot) => petWorld[k](slot));
+for (const k of ['spin', 'dance', 'neon', 'whistle', 'shimmy', 'heart', 'power', 'cheer', 'sign', 'slime', 'sleep', 'brush', 'flip', 'pop', 'rest', 'stretch', 'wave', 'horn', 'chime', 'bread', 'morph', 'receipt', 'talk', 'hi5', 'rps', 'tag', 'nap', 'life', 'acryl', 'feed', 'petpet', 'steal', 'trash', 'weather', 'clone', 'toe', 'star', 'grip', 'scribble']) window.api.on(k, (slot) => petWorld[k](slot));
 window.api.on('spawn', (info) => petWorld.spawn(info));
 window.api.on('wake', () => petWorld.wake());
 setInterval(() => { try { window.api.beat(petWorld.health()); } catch {} }, 3000);

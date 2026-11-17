@@ -1712,10 +1712,11 @@ function refreshTags() {
 
 function chatter() {
   setTimeout(chatter, rand(9000, 22000));
-  const here = list().filter((p) => !p.busy());
+  const here = list().filter((p) => !p.busy() && !p.talking);
   if (!here.length) return;
   const [a, b] = Math.random() < 0.5 ? here : here.slice().reverse();
   if (b && Math.random() < 0.08) { duoAct(pick(['hi5', 'rps', 'rps', 'tag', 'nap'])); return; }
+  if (b && !a.morphed && !b.morphed && Math.random() < 0.14) { duoAct('talk'); return; }
   if (Math.random() < 0.03) { showReceipt(a); a.say('정산 시간', 1600); return; }
   const r = Math.random();
   if (r < 0.2 && b) {
@@ -1820,7 +1821,7 @@ function duoDance(kind) {
   r.walkTo(mx + 52, my);
   l.onArrive = () => { l.ready = true; l.facing = 1; l.until = performance.now() + 10000; };
   r.onArrive = () => { r.ready = true; r.facing = -1; r.until = performance.now() + 10000; };
-  l.say(pick(['모여!', '같이 춰', '자리 잡아']), 1600);
+  l.say(kind === 'x:talk' ? pick(['야', '잠깐 와봐', '할 말 있음']) : pick(['모여!', '같이 춰', '자리 잡아']), 1600);
 }
 function checkDuo(now) {
   if (!duoPending) return;
@@ -1860,6 +1861,8 @@ function startDuo(kind, l, r) {
       lo.say(pick(['삼세판', '아 억울해', '다시 해']), 1800);
       setTimeout(() => { w.dance('heart'); lo.rest(); }, 400);
     }, 2600);
+  } else if (kind === 'talk') {
+    if (window.jyTalk) window.jyTalk(l, r);
   } else if (kind === 'nap') {
     [l, r].forEach((p, i) => setTimeout(() => { p.state = 'idle'; p.sleep(); }, i * 500));
   }
