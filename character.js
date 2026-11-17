@@ -9,6 +9,10 @@
   const ST = `stroke="${INK}" stroke-linejoin="round" stroke-linecap="round"`;
   const OUTFITS = {
     military: { name: '군복' },
+    angel: { name: '천사 (세트 보상)', base: 'skydress', reward: 'angel', a: { uni: '#ffffff', shade: '#dfe6ee', pants: '#ffffff', shoe: '#ffffff', hair: '#1f1b1a' }, b: { uni: '#ffffff', shade: '#dfe6ee', pants: '#ffffff', shoe: '#ffffff', hair: '#2a211d' } },
+    princess: { name: '공주 (세트 보상)', base: 'girlgroup', reward: 'princess', a: { uni: '#ffc2dc', shade: '#f29dc0', pants: '#ffc2dc', shoe: '#ffffff', hair: '#2b2421' }, b: { uni: '#ffd6e6', shade: '#f2a9c7', pants: '#ffd6e6', shoe: '#ffffff', hair: '#3a2c24' } },
+    office: { name: '안경 오피스 (세트 보상)', base: 'suit', reward: 'office', a: { uni: '#1d1c22', shade: '#0e0d12', pants: '#1d1c22', shoe: '#111', hair: '#141217' }, b: { uni: '#2a2a33', shade: '#16161c', pants: '#2a2a33', shoe: '#111', hair: '#1c1714' } },
+    selfie: { name: '거울 셀카 (세트 보상)', base: 'hoodie', reward: 'selfie', a: { uni: '#6f86b6', shade: '#566c99', pants: '#9db3d6', shoe: '#f2f2f2', hair: '#1b1716' }, b: { uni: '#f2f0ea', shade: '#d6d2c6', pants: '#9db3d6', shoe: '#c69a5a', hair: '#231b17' } },
     gyaru: { name: '갸루', a: { uni: '#ff6fb5', shade: '#d94a92', pants: '#2b2a33', shoe: '#ff9fd0', hair: '#e8c46a' }, b: { uni: '#ffb13b', shade: '#d98a1c', pants: '#2b2a33', shoe: '#fff1a8', hair: '#f0d9a0' } },
     idol: { name: '아이돌 무대의상', a: { uni: '#f4f1ea', shade: '#cfc6b3', pants: '#26252b', shoe: '#f4f1ea', hair: '#2b2a33' }, b: { uni: '#25242b', shade: '#101014', pants: '#25242b', shoe: '#c9c9cf', hair: '#5a3b8a' } },
     school: { name: '교복', a: { uni: '#2c3a63', shade: '#1e2846', pants: '#4a4f60', shoe: '#3b2a20', hair: '#2f2925' }, b: { uni: '#6b2234', shade: '#4b1624', pants: '#3c3f4a', shoe: '#3b2a20', hair: '#3a2c24' } },
@@ -39,9 +43,11 @@
   function look(slot, outfit) {
     const base = COL[slot];
     if (!outfit || outfit === 'military' || !OUTFITS[outfit]) return { ...base, sleeve: base.uni, shoe: INK, outfit: 'military' };
-    const o = OUTFITS[outfit][slot];
-    const bare = ['gyaru', 'skydress', 'girlgroup', 'cheerleader', 'yellowtop', 'halter', 'mintoff', 'pinkmint'].includes(outfit);
-    return { ...base, ...o, sleeve: bare ? BASE_SKIN : o.uni, outfit };
+    const def = OUTFITS[outfit];
+    const id = def.base || outfit;
+    const o = { ...((OUTFITS[id] || {})[slot] || {}), ...def[slot] };
+    const bare = ['gyaru', 'skydress', 'girlgroup', 'cheerleader', 'yellowtop', 'halter', 'mintoff', 'pinkmint'].includes(id);
+    return { ...base, ...o, sleeve: bare ? BASE_SKIN : o.uni, outfit: id, extra: def.reward || null };
   }
   let seq = 0;
 
@@ -393,6 +399,14 @@
     return `<g class="wings" display="none"><g class="wing-l">${L}</g><g class="wing-r">${R}</g></g>`;
   }
 
+  function extraWear(c) {
+    if (c.extra === 'angel') return `<g class="xtra"><ellipse cx="50" cy="9" rx="13" ry="3.6" fill="none" stroke="#ffd54a" stroke-width="2.6"/><ellipse cx="50" cy="9" rx="13" ry="3.6" fill="none" stroke="#fff6c4" stroke-width="1"/></g>`;
+    if (c.extra === 'princess') return `<g class="xtra"><path d="M36 25 L38 13 L44 20 L50 9 L56 20 L62 13 L64 25 Z" fill="#e8e9f0" ${ST} stroke-width="1.4"/><circle cx="50" cy="16" r="2.2" fill="#ff4f8b"/><circle cx="41" cy="20" r="1.4" fill="#7fc8ff"/><circle cx="59" cy="20" r="1.4" fill="#7fc8ff"/></g>`;
+    if (c.extra === 'office') return `<g class="xtra"><rect x="34" y="40.5" width="13" height="9" rx="4" fill="rgba(255,255,255,.25)" stroke="#6b6670" stroke-width="1.4"/><rect x="53" y="40.5" width="13" height="9" rx="4" fill="rgba(255,255,255,.25)" stroke="#6b6670" stroke-width="1.4"/><path d="M47 44 Q50 42.5 53 44" fill="none" stroke="#6b6670" stroke-width="1.3"/></g>`;
+    if (c.extra === 'selfie') return `<g class="xtra"><rect x="67" y="36" width="10" height="17" rx="2.4" fill="#ff9cc8" ${ST} stroke-width="1.4"/><circle cx="70" cy="39.5" r="1.4" fill="#2b2622"/><circle cx="73.5" cy="39.5" r="1.4" fill="#2b2622"/></g>`;
+    return '';
+  }
+
   function markup(slot, uid, ghost, outfit) {
     const c = look(slot, outfit);
     const gun = `<g class="gun" display="none"><rect class="skin" x="-1.6" y="19" width="3.2" height="8.5" rx="1.6" fill="${BASE_SKIN}" ${ST} stroke-width="1.3"/>` +
@@ -417,7 +431,7 @@
       `<circle class="skin" cx="29.6" cy="47" r="4.6" fill="${BASE_SKIN}" ${ST} stroke-width="1.8"/>` +
       `<circle class="skin" cx="70.4" cy="47" r="4.6" fill="${BASE_SKIN}" ${ST} stroke-width="1.8"/></g>` +
       `<ellipse class="skin headbase" cx="50" cy="44.5" rx="21" ry="22" fill="${BASE_SKIN}" ${ST} stroke-width="2"/>` +
-      `${drawnFace(slot, c)}${headwear(slot, c)}` +
+      `${drawnFace(slot, c)}${headwear(slot, c)}${extraWear(c)}` +
       `<clipPath id="fc${uid}"><rect x="-100" y="-200" width="300" height="264.5"/></clipPath>` +
       `<g class="photo" display="none"><g clip-path="url(#fc${uid})"><g mask="url(#fm${uid})"><image class="photo-img" preserveAspectRatio="none"/></g></g>` +
       `<path class="cut-line" fill="none" stroke="${INK}" stroke-width="1.3" stroke-opacity=".4" stroke-linejoin="round"/></g>` +
@@ -463,11 +477,13 @@
       this.p = {
         all: q('.all'), body: q('.body'), legL: q('.leg-l'), legR: q('.leg-r'), arm: q('.arm-hang'),
         head: q('.head'), prop: q('.prop'), drawn: q('.drawn'), photo: q('.photo'), img: q('.photo-img'),
-        ghost: q('.photo-ghost'), cut: q('.cut'), cutLine: q('.cut-line'), hat: q('.hat'), ears: q('.ears'), headbase: q('.headbase'), wings: q('.wings'), darmL: q('.darm-l'), barmL: q('.barm-l'), barmR: q('.barm-r'), bootR: q('.leg-r .boot'), bare: q('.bare'), toe: q('.toe'), whistle: q('.whistle'), gun: q('.gun'), brush: q('.brush'), darmR: q('.darm-r'), wingL: q('.wing-l'), wingR: q('.wing-r'), mouthC: q('.mouth-c'), mouthO: q('.mouth-o'), shadow: q('.shadow'),
+        ghost: q('.photo-ghost'), xtra: q('.xtra'), cut: q('.cut'), cutLine: q('.cut-line'), hat: q('.hat'), ears: q('.ears'), headbase: q('.headbase'), wings: q('.wings'), darmL: q('.darm-l'), barmL: q('.barm-l'), barmR: q('.barm-r'), bootR: q('.leg-r .boot'), bare: q('.bare'), toe: q('.toe'), whistle: q('.whistle'), gun: q('.gun'), brush: q('.brush'), darmR: q('.darm-r'), wingL: q('.wing-l'), wingR: q('.wing-r'), mouthC: q('.mouth-c'), mouthO: q('.mouth-o'), shadow: q('.shadow'),
       };
       this.eyes = [...this.svg.querySelectorAll('.eye')];
       this.skinEls = [...this.svg.querySelectorAll('.skin')];
       this.pivot = [Number(this.p.prop.dataset.px), Number(this.p.prop.dataset.py)];
+      this.angel = (OUTFITS[this.outfit] || {}).reward === 'angel';
+      if (this.angel) this.p.wings.setAttribute('display', 'inline');
     }
 
     async setOutfit(name) {
@@ -548,7 +564,7 @@
 
     setFairy(on) {
       this.fairy = on;
-      this.p.wings.setAttribute('display', on ? 'inline' : 'none');
+      this.p.wings.setAttribute('display', on || this.angel ? 'inline' : 'none');
     }
 
     setSkin(color) {
@@ -586,6 +602,7 @@
       else this.p.body.insertBefore(this.p.head, this.p.prop);
       this.p.photo.setAttribute('display', v(on));
       for (const k of ['drawn', 'hat', 'ears', 'headbase']) this.p[k].setAttribute('display', v(!on));
+      if (this.p.xtra && !this.angel) this.p.xtra.setAttribute('display', v(!on));
       if (this.p.ghost) this.p.ghost.setAttribute('display', v(on));
     }
 
@@ -740,5 +757,6 @@
 
   window.CharRig = CharRig;
   window.CharOutfits = Object.fromEntries(Object.entries(OUTFITS).map(([k, v]) => [k, v.name]));
+  window.CharRewards = Object.fromEntries(Object.entries(OUTFITS).filter(([, v]) => v.reward).map(([k, v]) => [k, v.reward]));
   window.CharFit = autoFit;
 })();

@@ -10,7 +10,8 @@
     ['cards', '포토카드 도감', '#ff6fb5', '♥︎'],
     ['update', '업데이트', '#34c759', '↻'],
   ];
-  const SWATCH = { white: '#fffaf2', black: '#151517', pink: '#ffd3e3', mint: '#c9f1df', film: '#3a3a3a', army: '#5f6b3a' };
+  const SWATCH = { white: '#fffaf2', black: '#151517', pink: '#ffd3e3', mint: '#c9f1df', film: '#3a3a3a', army: '#5f6b3a', gold: '#e8c15a' };
+  const REWARD_OUTFIT = { angel: 'angel', princess: 'princess', office: 'office', selfie: 'selfie' };
   const RANK = { N: 0, R: 1, SR: 2, SSR: 3 };
   let tab = qs.get('tab') || 'general';
   let D = null;
@@ -55,10 +56,16 @@
       </div>
       <div class="sec-h">효과</div><div class="group">
         ${row('효과음', sw('sound', c.sound !== false))}
+        ${row('목소리', sw('voice', c.voice !== false))}
         ${row('알림 배너', sw('banners', c.banners !== false))}
         ${row('알림 배너 빈도', seg('bannerFreq', [['low', '적게'], ['normal', '보통'], ['high', '자주']], c.bannerFreq || 'normal'))}
         ${row('알림 배너 지금 보기', btn('banner', '보기'))}
         ${row('남은 것 영수증', btn('action', '보기', 'receipt'))}
+        ${row('오늘의 아크릴', btn('acryl', '보기'))}
+      </div>
+      <div class="sec-h">날씨와 계절</div><div class="group">
+        ${row('날씨 반응 (비, 눈, 크리스마스)', sw('weather', c.weather !== false))}
+        ${row(`지역${D.weather ? ` <span class="val">${esc(D.weather.city)} ${D.weather.temp}도</span>` : ''}`, `<select data-city>${Object.entries(D.cities).map(([k, v]) => `<option value="${k}" ${(c.city || 'seoul') === k ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>`)}
       </div>
       <div class="sec-h">D-day 기념 연출</div><div class="group">
         ${row(`<select id="ms">${D.milestones.map((m) => `<option value="${m}">${m === 0 ? 'D-DAY' : 'D-' + m}</option>`).join('')}</select>`, `<button class="btn" id="ms-go">미리보기</button>`)}
@@ -67,9 +74,21 @@
     character() {
       const c = D.cfg;
       const o = c.outfits || {};
-      const opts = (s) => Object.entries(D.outfits).map(([k, v]) => `<option value="${k}" ${(o[s] || 'military') === k ? 'selected' : ''}>${esc(v)}</option>`).join('');
+      const opts = (s) => Object.entries(D.outfits).map(([k, v]) => {
+        const locked = REWARD_OUTFIT[k] && !D.unlocked[k];
+        return `<option value="${k}" ${(o[s] || 'military') === k ? 'selected' : ''} ${locked ? 'disabled' : ''}>${esc(v)}${locked ? ' (세트 보상, 잠김)' : ''}</option>`;
+      }).join('');
+      const care = c.care || {};
+      const cv = (s) => {
+        const v = care[s] || {};
+        const mins = (Date.now() - (v.t || Date.now())) / 60000;
+        return { food: Math.max(0, Math.round((v.food ?? 80) - mins * (100 / 1440))), mood: Math.max(0, Math.round((v.mood ?? 80) - mins * (100 / 600))) };
+      };
+      const bar = (n, col) => `<span style="display:inline-flex;align-items:center;gap:8px;min-width:150px"><span class="bar" style="flex:1;margin:0"><i style="width:${n}%;background:${col}"></i></span><span class="val" style="width:34px;text-align:right">${n}</span></span>`;
       return ['a', 'b'].map((s) => `<div class="sec-h">${esc(D.slots[s])}</div><div class="group">
         ${row('옷', `<select data-outfit="${s}">${opts(s)}</select>`)}
+        ${row('배부름', `${bar(cv(s).food, '#ff9f0a')}${btn('slotAct', '밥 주기', 'feed:' + s)}`)}
+        ${row('기분', `${bar(cv(s).mood, '#ff375f')}${btn('slotAct', '쓰다듬기', 'petpet:' + s)}`)}
         ${row(`<span style="display:flex;align-items:center;gap:10px"><img class="thumb" data-face="${s}" alt="">얼굴</span>`, `<div class="btns">${btn('pickFace', '사진 고르기', s)}${btn('adjustFace', '위치 맞추기', s)}</div>`)}
       </div>`).join('') + `<div class="group" style="margin-top:14px">${row('두 캐릭터 원래 얼굴로', btn('resetFace', '되돌리기'))}</div>`;
     },
@@ -96,7 +115,7 @@
       let items = D.cutStyles.map(([k, v]) => [keyFor(k), k === 'basic' ? '기본 색' : v]).filter(([k]) => k);
       if (curN === 4) items = [['strip', '기본 색 세로'], ['grid', '기본 색 2x2'], ...items];
       const r = ([k, l]) => `<div class="radio" role="radio" data-layout="${k}" aria-checked="${lay === k}"><i></i><span>${esc(l)}</span></div>`;
-      return `<div class="sec-h">기본 색</div><div class="group">${row('색', `<div class="swatches">${Object.entries(D.frameStyles).map(([k, v]) => `<button title="${esc(v)}" aria-label="${esc(v)}" data-fstyle="${k}" style="background:${SWATCH[k]}" aria-pressed="${(c.frameStyle || 'white') === k}"></button>`).join('')}</div>`)}
+      return `<div class="sec-h">기본 색</div><div class="group">${row('색', `<div class="swatches">${Object.entries(D.frameStyles).filter(([k]) => k !== 'gold' || D.unlocked.gold).map(([k, v]) => `<button title="${esc(v)}" aria-label="${esc(v)}" data-fstyle="${k}" style="background:${SWATCH[k]}" aria-pressed="${(c.frameStyle || 'white') === k}"></button>`).join('')}</div>`)}
         ${row('내 프레임 이미지', `<div class="btns">${c.frameFile ? `<button class="btn" data-fstyle="custom" aria-pressed="${c.frameStyle === 'custom'}">${c.frameStyle === 'custom' ? '사용 중' : '사용'}</button>` : ''}${btn('pickFrame', '고르기')}</div>`)}
       </div>
       <div class="sec-h">컷</div><div class="group">
@@ -117,6 +136,7 @@
       const pct = cards.length ? Math.round((got.length / cards.length) * 100) : 0;
       return `<div class="cards-top"><div class="stat"><b>${got.length}</b><span>/ ${cards.length}장, 뽑은 횟수 ${total}번, SSR ${best('SSR')}, SR ${best('SR')}</span><div class="bar"><i style="width:${pct}%"></i></div></div>
         ${seg('cardFilter', [['all', '전체'], ['got', '모음'], ['miss', '못 모음']], cardFilter)}${btn('addCards', '사진 추가')}${btn('action', '빵 뜯기', 'bread', 'primary')}</div>
+        <div class="group" style="margin-bottom:12px">${D.sets.map((st) => row(`${esc(st.name)} 세트 <span class="val">${st.got}/${st.total}</span>`, `<span class="val">${st.done ? '완성: ' : '보상: '}${esc(st.reward.label)}</span>`)).join('')}</div>
         <div class="album">${list.map((c) => (c.n
           ? `<div class="pc" data-big="${c.id}"><img src="${c.url}" alt=""><span class="rk ${c.best}">${c.best}</span>${c.n > 1 ? `<span class="cnt">×${c.n}</span>` : ''}</div>`
           : '<div class="pc locked"><span>?</span></div>')).join('')}</div>`;
@@ -163,6 +183,7 @@
       const u = await api.settingsDo('faceThumb', img.dataset.face);
       if (u && u !== true) img.src = u;
     });
+    root.querySelectorAll('[data-city]').forEach((s) => (s.onchange = () => api.settingsPatch({ city: s.value })));
     root.querySelectorAll('[data-capture]').forEach((r) => (r.onclick = () => api.settingsPatch({ capture: r.dataset.capture })));
     root.querySelectorAll('[data-fstyle]').forEach((b) => (b.onclick = () => api.settingsPatch({ frameStyle: b.dataset.fstyle, capture: 'photo' })));
     root.querySelectorAll('[data-layout]').forEach((r) => (r.onclick = () => { api.settingsDo('resetQueue'); api.settingsPatch({ frameLayout: r.dataset.layout, capture: 'photo' }); }));

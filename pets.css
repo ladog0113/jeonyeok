@@ -47,6 +47,7 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 #frame.fs-mint { --fb-bg: #c9f1df; --fb-ink: #1f6b4f; --fb-acc: #f2b630; }
 #frame.fs-film { --fb-bg: #111; --fb-ink: #f4f1ea; --fb-acc: #f2b630; }
 #frame.fs-army { --fb-bg: #5f6b3a; --fb-ink: #f4f1ea; --fb-acc: #e9f06a; }
+#frame.fs-gold { --fb-bg: #e8c15a; --fb-ink: #3a2706; --fb-acc: #fff3c0; }
 #frame .fb { position: absolute; background: var(--fb-bg); }
 #frame.fs-army .fb { background: radial-gradient(circle at 20% 30%, #4a5530 0 18px, transparent 19px) 0 0 / 70px 60px, radial-gradient(circle at 70% 70%, #7d8a45 0 14px, transparent 15px) 0 0 / 60px 50px, radial-gradient(circle at 40% 80%, #3b3a2c 0 10px, transparent 11px) 0 0 / 80px 70px, #5f6b3a; }
 #frame .fb-top { top: 0; left: 0; right: 0; height: 44px; display: flex; justify-content: center; align-items: center; gap: 12px; }
@@ -214,3 +215,40 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 .rc-r span { font-family: "Apple SD Gothic Neo", sans-serif; }
 .rc-t { font-size: 14px; }
 .rc-bar { height: 30px; margin: 10px 4px 6px; background: repeating-linear-gradient(90deg, #222 0 2px, transparent 2px 4px, #222 4px 5px, transparent 5px 8px, #222 8px 11px, transparent 11px 12px); }
+
+/* 오늘의 아크릴 */
+.acryl { position: fixed; top: 34px; right: 14px; width: 356px; z-index: 41; pointer-events: none; border-radius: 22px; overflow: hidden; color: #fff; font: 13px/1.35 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; word-break: keep-all; background: linear-gradient(170deg, #4b8ff0, #2a5fc9 55%, #2449a8); box-shadow: 0 0 0 .5px rgba(0,0,0,.2), 0 14px 40px rgba(0,0,0,.3); transform: translateX(120%); transition: transform .6s cubic-bezier(.2,1.1,.3,1), opacity .4s; }
+.acryl.in { transform: none; }
+.acryl.out { transform: translateX(120%); opacity: 0; }
+.ac-top { padding: 14px 16px 0; }
+.ac-k { font-weight: 700; font-size: 13px; letter-spacing: .02em; }
+.ac-date { opacity: .8; font-size: 12px; margin-top: 1px; }
+.ac-main { padding: 10px 16px 12px; }
+.ac-l { font-size: 12px; opacity: .85; }
+.ac-big { font-size: 34px; font-weight: 300; letter-spacing: -.02em; line-height: 1.15; }
+.ac-desc { font-size: 13px; opacity: .95; }
+.ac-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(255,255,255,.18); border-top: 1px solid rgba(255,255,255,.18); }
+.ac-grid div { background: rgba(20, 50, 120, .35); padding: 8px 12px; display: flex; flex-direction: column; gap: 1px; }
+.ac-grid span { font-size: 11px; opacity: .75; }
+.ac-grid b { font-weight: 600; font-size: 13px; }
+/* 키우기 */
+.food { position: absolute; width: 44px; height: 34px; z-index: 30; pointer-events: none; }
+.food .bun-t { height: 13px; border-radius: 22px 22px 4px 4px; background: #e2a24f; border: 2px solid #2b2622; }
+.food .lettuce { height: 5px; margin: -1px -2px 0; background: #79c94b; border: 2px solid #2b2622; border-radius: 4px; }
+.food .patty { height: 7px; margin-top: -1px; background: #6b3a1f; border: 2px solid #2b2622; border-radius: 3px; }
+.food .bun-b { height: 8px; margin-top: -1px; background: #e2a24f; border: 2px solid #2b2622; border-radius: 3px 3px 8px 8px; }
+.fake-cursor { position: absolute; left: 70%; top: 36%; z-index: 3; pointer-events: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+.fake-cursor.flying { position: fixed; transition: left .7s cubic-bezier(.3,.8,.3,1), top .7s cubic-bezier(.3,.8,.3,1), opacity .7s; z-index: 45; }
+.trash { position: absolute; width: 18px; height: 16px; border-radius: 45% 55% 50% 40%; background: radial-gradient(circle at 35% 35%, #fff, #d8d4c8); border: 1.5px solid #8a8678; transform: rotate(var(--r)); pointer-events: none; transition: transform .3s, opacity .3s; }
+.trash.got { transform: translateY(-20px) scale(.2); opacity: 0; }
+/* 날씨와 계절 */
+.wx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 2; animation: flash .5s ease-out; }
+@keyframes flash { 10% { opacity: .55; } 30% { opacity: .1; } 45% { opacity: .4; } 100% { opacity: 0; } }
+.pet .gear { position: absolute; pointer-events: none; z-index: 2; }
+.pet .gear-umbrella { left: 4%; top: -46%; width: 92%; height: 76%; }
+.pet .gear-santa { left: 22%; width: 60%; height: 44px; }
+.pet .gear-party { left: 32%; width: 36%; height: 44px; }
+.snowman { position: absolute; pointer-events: none; z-index: 1; animation: pop-in .5s cubic-bezier(.2,1.5,.4,1) both; transform-origin: 50% 100%; }
+.snowman.melt { transition: transform 1.4s, opacity 1.4s; transform: scaleY(.2); opacity: 0; }
+@keyframes pop-in { from { transform: scale(0); } to { transform: scale(1); } }

@@ -278,17 +278,19 @@ const OUTFIT_NAMES = {
   trot: '트로트 무대의상', skydress: '소라색 민소매 원피스', cheer: '응원단 유니폼', pajama: '잠옷',
   girlgroup: '걸그룹 무대의상', cheerleader: '응원단장복', sailor: '세일러 교복', tennis: '테니스룩', kimono: '검정 기모노',
   hoodie: '후드티', denim: '청자켓', cardigan: '니트 가디건 + 플리츠', suit: '정장', tracksuit: '트레이닝복', hanbok: '한복', padding: '롱패딩',
+  angel: '천사', princess: '공주', office: '안경 오피스', selfie: '거울 셀카',
   yellowtop: '옐로 브라톱', halter: '홀터넥', strawberry: '딸기 티 + 스트라이프 팬츠', mintoff: '민트 오프숄더 + 도트 쇼츠', pinkmint: '핑크 민트 레이어드 탱크', y2k: 'Y2K',
 };
 const ACTIONS = [
   ['한마디 해봐', 'poke'], ['화면 깨기', 'smash'], ['빙글빙글', 'spin'], ['분신술', 'clone'], ['발가락 따봉', 'toe'],
-  ['손가락 별', 'star'], ['그립감', 'grip'], ['공중제비', 'flip'], ['낙서하기', 'scribble'], ['사인하기', 'sign'], ['붓글씨', 'brush'], ['앉아서 쉬기', 'rest'], ['기지개', 'stretch'], ['손 흔들기', 'wave'], ['클락션 빵빵', 'horn'], ['남은 것 영수증', 'receipt'], ['둘이 하이파이브', 'hi5'], ['둘이 가위바위보', 'rps'], ['둘이 술래잡기', 'tag'], ['둘이 낮잠', 'nap'], ['빵 뜯기 (포토카드)', 'bread'], ['오리 변신 (20초)', 'morph'], ['슬라임 터뜨리기', 'slime'], ['잠자기', 'sleep'],
+  ['손가락 별', 'star'], ['그립감', 'grip'], ['공중제비', 'flip'], ['낙서하기', 'scribble'], ['사인하기', 'sign'], ['붓글씨', 'brush'], ['앉아서 쉬기', 'rest'], ['기지개', 'stretch'], ['손 흔들기', 'wave'], ['클락션 빵빵', 'horn'], ['오늘의 아크릴', 'acryl'], ['밥 주기', 'feed'], ['쓰다듬기', 'petpet'], ['커서 훔치기', 'steal'], ['쓰레기 줍기', 'trash'], ['남은 것 영수증', 'receipt'], ['둘이 하이파이브', 'hi5'], ['둘이 가위바위보', 'rps'], ['둘이 술래잡기', 'tag'], ['둘이 낮잠', 'nap'], ['빵 뜯기 (포토카드)', 'bread'], ['오리 변신 (20초)', 'morph'], ['슬라임 터뜨리기', 'slime'], ['잠자기', 'sleep'],
 ];
 const DANCE_ITEMS = [
   ['파라파라', 'dance'], ['호루라기 춤', 'whistle'], ['어깨 털기', 'shimmy'], ['하트 춤', 'heart'], ['파워 댄스', 'power'], ['BAD', 'pop'], ['응원 춤', 'cheer'],
 ];
 
 function patchConfig(patch) {
+  if ('city' in patch || 'weather' in patch) setTimeout(fetchWeather, 100);
   const cfg = { ...(loadConfig() || {}), ...patch };
   saveConfig(cfg);
   broadcast('config-updated', cfg);
@@ -297,7 +299,7 @@ function patchConfig(patch) {
   return cfg;
 }
 
-const FRAME_STYLES = { white: '흰색 기본', black: '블랙', pink: '핑크 하트', mint: '민트 별', film: '필름', army: '군대 카모' };
+const FRAME_STYLES = { white: '흰색 기본', black: '블랙', pink: '핑크 하트', mint: '민트 별', film: '필름', army: '군대 카모', gold: '골드 (세트 보상)' };
 let shortcutState = null;
 
 function shotDir() {
@@ -778,6 +780,59 @@ async function addCards() {
   for (const w of overlays.values()) if (!w.isDestroyed()) w.webContents.send('cards-updated');
 }
 
+/* ---------- 포토카드 세트 ---------- */
+const CARD_SETS = [
+  { id: 'angel', name: '천사 날개', cards: [28, 34, 45], reward: { type: 'outfit', key: 'angel', label: '천사 옷 (날개와 링)' } },
+  { id: 'princess', name: '왕관', cards: [30, 38], reward: { type: 'outfit', key: 'princess', label: '공주 옷 (왕관)' } },
+  { id: 'office', name: '안경', cards: [29, 31], reward: { type: 'outfit', key: 'office', label: '안경 오피스 옷' } },
+  { id: 'selfie', name: '거울 셀카', cards: [19, 42, 43, 47, 49], reward: { type: 'outfit', key: 'selfie', label: '거울 셀카 옷 (휴대폰)' } },
+  { id: 'group', name: '다섯 명 단체', cards: [11, 12, 15, 16, 17, 21], reward: { type: 'frame', key: 'gold', label: '골드 프레임' } },
+].map((s) => ({ ...s, ids: s.cards.map((n) => `b:card${String(n).padStart(2, '0')}.jpg`) }));
+function setProgress(cfg) {
+  const seen = (cfg && cfg.cards) || {};
+  return CARD_SETS.map((s) => ({ id: s.id, name: s.name, reward: s.reward, total: s.ids.length, got: s.ids.filter((i) => seen[i]).length, done: s.ids.every((i) => seen[i]) }));
+}
+function unlocked(cfg) {
+  const u = {};
+  for (const s of setProgress(cfg)) if (s.done) u[s.reward.key] = true;
+  return u;
+}
+
+/* ---------- 날씨 ---------- */
+const CITIES = { seoul: ['서울', 37.5145, 127.1059], busan: ['부산', 35.1796, 129.0756], incheon: ['인천', 37.4563, 126.7052], daegu: ['대구', 35.8714, 128.6014], daejeon: ['대전', 36.3504, 127.3845], gwangju: ['광주', 35.1595, 126.8526], jeju: ['제주', 33.4996, 126.5312] };
+let weatherNow = null;
+let weatherErr = null;
+function wkind(code) {
+  if ([95, 96, 99].includes(code)) return 'thunder';
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'rain';
+  if (code === 45 || code === 48) return 'fog';
+  if (code >= 2) return 'cloud';
+  return 'clear';
+}
+async function fetchWeather() {
+  const cfg = loadConfig() || {};
+  if (cfg.weather === false) { weatherNow = null; broadcast('weather', null); return; }
+  const [name, lat, lon] = CITIES[cfg.city] || CITIES.seoul;
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=Asia%2FSeoul`);
+    const j = await r.json();
+    weatherNow = { city: name, temp: Math.round(j.current.temperature_2m), code: j.current.weather_code, kind: wkind(j.current.weather_code) };
+  } catch (e) {
+    weatherErr = e.message;
+  }
+  if (weatherNow) broadcast('weather', weatherNow);
+}
+ipcMain.handle('weather-now', () => weatherNow);
+
+/* ---------- 키우기 (배고픔, 기분) ---------- */
+ipcMain.handle('care-get', () => ((loadConfig() || {}).care) || {});
+ipcMain.on('care-set', (_e, slot, v) => {
+  const cfg = loadConfig() || {};
+  saveConfig({ ...cfg, care: { ...(cfg.care || {}), [slot]: v } });
+  if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('settings-refresh');
+});
+
 /* ---------- 설정 창 ---------- */
 let settingsWin = null;
 let settingsTab = 'general';
@@ -837,6 +892,10 @@ ipcMain.handle('settings-data', () => ({
   shortcutState,
   days: daysLeft(loadConfig()),
   milestones: [800, 700, 600, 500, 400, 300, 200, 100, 50, 30, 10, 7, 3, 1, 0],
+  sets: setProgress(loadConfig()),
+  unlocked: unlocked(loadConfig()),
+  cities: Object.fromEntries(Object.entries(CITIES).map(([k, v]) => [k, v[0]])),
+  weather: weatherNow,
 }));
 ipcMain.handle('settings-patch', (_e, patch) => { patchConfig(patch); return true; });
 ipcMain.handle('settings-do', async (_e, cmd, arg) => {
@@ -858,6 +917,14 @@ ipcMain.handle('settings-do', async (_e, cmd, arg) => {
     case 'logs': shell.openPath(app.getPath('userData')); break;
     case 'milestone': sendPrimary('milestone', arg); break;
     case 'banner': sendPrimary('banner', { kind: 'random' }); break;
+    case 'acryl': sendPrimary('acryl', weatherNow); break;
+    case 'weather': fetchWeather(); break;
+    case 'slotAct': {
+      const [k, slot] = String(arg).split(':');
+      const w = overlays.get(petHome[slot]) || primaryOverlay();
+      if (w && !w.isDestroyed()) w.webContents.send(k, slot);
+      break;
+    }
     case 'faceThumb': {
       const f = normFace(((loadConfig() || {}).faces || {})[arg]);
       return f ? fileToDataUrl(f.file) : null;
@@ -890,9 +957,13 @@ ipcMain.handle('card-record', (_e, id, rare) => {
   const cards = { ...(cfg.cards || {}) };
   const prev = cards[id];
   cards[id] = { n: (prev ? prev.n : 0) + 1, best: prev && RANK[prev.best] >= RANK[rare] ? prev.best : rare, first: prev ? prev.first : Date.now() };
+  const before = setProgress(cfg).filter((s) => s.done).map((s) => s.id);
   saveConfig({ ...cfg, cards });
+  const after = setProgress({ cards });
+  const fresh = after.filter((s) => s.done && !before.includes(s.id));
+  for (const s of fresh) setTimeout(() => sendPrimary('banner', { title: `${s.name} 세트 완성`, body: `보상: ${s.reward.label}. 설정에서 바로 쓸 수 있음` }), 3200);
   if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('settings-refresh');
-  return { isNew: !prev, count: Object.keys(cards).length };
+  return { isNew: !prev, count: Object.keys(cards).length, set: fresh.length ? fresh[0].name : null };
 });
 
 /* ---------- 네컷 결과 공유 창 ---------- */
@@ -982,8 +1053,7 @@ function greetToday() {
   saveConfig({ ...cfg, lastGreet: todayKey() });
   const d = daysLeft(cfg);
   if (d === null) return;
-  const body = d > 0 ? `오늘은 D-${d}. 오늘도 ${d}일 중 하루 줄었다` : d === 0 ? '오늘 전역합니다' : `전역하고 ${-d}일 지났다`;
-  sendPrimary('banner', { title: '좋은 아침', body });
+  sendPrimary('acryl', weatherNow);
 }
 function lifeTick() {
   const cfg = loadConfig() || {};
@@ -1037,7 +1107,7 @@ async function runSelftest() {
     for (const w of overlays.values()) w.webContents.on('console-message', (_e, level, msg) => { if (level >= 3) res.errors.push('overlay console: ' + msg); });
     await wait(2500);
     await cap(ov, 'overlay');
-    for (const [k, t] of [['bread', 3200], ['horn', 2400], ['morph', 1800]]) { ov.webContents.send(k, 'a'); await wait(t); await cap(ov, 'act-' + k); }
+    for (const [k, t] of [['bread', 3200], ['horn', 2400], ['morph', 1800], ['feed', 3000], ['acryl', 1500], ['hi5', 5000], ['receipt', 1600]]) { ov.webContents.send(k, 'a'); await wait(t); await cap(ov, 'act-' + k); }
     ov.webContents.send('banner', { title: '자동 점검', body: '알림 배너 표시 확인' });
     await wait(900);
     await cap(ov, 'banner');
@@ -1108,6 +1178,8 @@ app.whenReady().then(() => {
   setTimeout(() => { greetToday(); checkMilestone(); }, 7000);
   setInterval(checkMilestone, 30 * 60000);
   setInterval(lifeTick, 30000);
+  setTimeout(fetchWeather, 3000);
+  setInterval(fetchWeather, 30 * 60000);
   setTimeout(lifeTick, 9000);
   scheduleBanner();
   if (process.env.JY_SELFTEST) runSelftest();
