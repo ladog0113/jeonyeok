@@ -341,7 +341,6 @@
   /* ---------- 클릭 반응 ---------- */
   const CLICK = {
     head: ['머리 만지지 마', '쓰담 인정', '머리 눌리면 키 안 큼', '모자 삐뚤어진다', '헤헤'],
-    body: ['간지러워', '배 누르지 마', '거기 아니야', '푸흡', '군복 구겨진다'],
     feet: ['발 밟았다', '아 발가락', '점프!', '군화 새 거임', '발은 왜'],
   };
   const WARN = ['그만 눌러', '손가락 안 아프냐', '계속 누르면 화낸다', '진짜 마지막 경고'];
@@ -359,10 +358,9 @@
       SFX.play('tick');
       return;
     }
-    const zone = ly < PH * 0.42 ? 'head' : ly < PH * 0.78 ? 'body' : 'feet';
+    const zone = ly < PH * 0.42 ? 'head' : 'feet';
     p.say(pick(CLICK[zone]), 1500);
     if (zone === 'head') { SFX.play('pop'); hearts(p, 2); bump(p, 0, 4); wiggle(p, 0.7); }
-    else if (zone === 'body') { SFX.play('flip'); wiggle(p, 1); p.spinT = 0; p.spinTurns = 1; }
     else { SFX.play('whoosh'); wiggle(p, 1.2); makeBlast(p.x + PW / 2, p.y + PH - 10, pick(['움찔', '깡총', '앗']), 'bubble', 0.2); }
   }
   function rage(p) {
