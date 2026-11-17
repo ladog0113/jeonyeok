@@ -92,6 +92,7 @@ const SFX = (() => {
       [523.25, 659.25, 783.99, 1046.5].forEach((f) => tone({ type: 'triangle', f, t: 0.5, d: 1.2, v: 0.1 }));
     },
     tick() { tone({ type: 'square', f: 1800, d: 0.03, v: 0.04 }); },
+    clap() { noise({ type: 'bandpass', f: 1400, q: 0.9, d: 0.12, v: 0.55, a: 0.002 }); noise({ t: 0.015, type: 'highpass', f: 2500, d: 0.08, v: 0.3, a: 0.002 }); },
   };
   return {
     play(name) { if (on() && S[name]) try { S[name](); } catch {} },

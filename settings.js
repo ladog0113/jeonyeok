@@ -58,6 +58,7 @@
         ${row('알림 배너', sw('banners', c.banners !== false))}
         ${row('알림 배너 빈도', seg('bannerFreq', [['low', '적게'], ['normal', '보통'], ['high', '자주']], c.bannerFreq || 'normal'))}
         ${row('알림 배너 지금 보기', btn('banner', '보기'))}
+        ${row('남은 것 영수증', btn('action', '보기', 'receipt'))}
       </div>
       <div class="sec-h">D-day 기념 연출</div><div class="group">
         ${row(`<select id="ms">${D.milestones.map((m) => `<option value="${m}">${m === 0 ? 'D-DAY' : 'D-' + m}</option>`).join('')}</select>`, `<button class="btn" id="ms-go">미리보기</button>`)}

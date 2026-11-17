@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld('api', {
   editorCancel: () => ipcRenderer.invoke('face-editor-cancel'),
   editorRepick: () => ipcRenderer.invoke('face-editor-repick'),
   on: (channel, fn) => {
-    if (['poke', 'smash', 'spin', 'dance', 'neon', 'whistle', 'shimmy', 'heart', 'power', 'cheer', 'sign', 'slime', 'sleep', 'brush', 'flip', 'pop', 'rest', 'stretch', 'wave', 'horn', 'bread', 'morph', 'clone', 'toe', 'star', 'grip', 'scribble', 'spawn', 'screens', 'config-updated', 'cards-updated', 'milestone', 'banner', 'settings-refresh', 'settings-tab'].includes(channel)) {
+    if (['poke', 'smash', 'spin', 'dance', 'neon', 'whistle', 'shimmy', 'heart', 'power', 'cheer', 'sign', 'slime', 'sleep', 'brush', 'flip', 'pop', 'rest', 'stretch', 'wave', 'horn', 'bread', 'morph', 'receipt', 'hi5', 'rps', 'tag', 'nap', 'life', 'clone', 'toe', 'star', 'grip', 'scribble', 'spawn', 'screens', 'config-updated', 'cards-updated', 'milestone', 'banner', 'settings-refresh', 'settings-tab'].includes(channel)) {
       ipcRenderer.on(channel, (_e, data) => fn(data));
     }
   },

@@ -23,9 +23,9 @@ function stats() {
     meals: Math.max(left, 0) * 3,
     hours: Math.max(0, Math.floor((target - now) / 3600000)),
     weeks: Math.floor(Math.max(left, 0) / 7),
-    weekends: Math.floor(Math.max(left, 0) / 7),
     pct: null, rpct: null, done: null,
   };
+  Object.assign(s, lifeStats(target, now));
   if (cfg.enlist) {
     const [ey, em, ed] = cfg.enlist.split('-').map(Number);
     const start = new Date(ey, em - 1, ed);
@@ -39,11 +39,56 @@ function stats() {
   return s;
 }
 
+function paydayOf(y, m) {
+  const d = new Date(y, m, 25);
+  const wd = d.getDay();
+  if (wd === 6) d.setDate(24);
+  if (wd === 0) d.setDate(23);
+  return d;
+}
+const OFF_HOUR = 17;
+function lifeStats(target, now) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let weekends = 0, workdays = 0, paydays = 0;
+  for (let t = new Date(today); t <= target; t.setDate(t.getDate() + 1)) {
+    const wd = t.getDay();
+    if (wd === 6) weekends++;
+    if (wd > 0 && wd < 6) {
+      const isToday = t.getTime() === today.getTime();
+      if (!isToday || now.getHours() < OFF_HOUR) workdays++;
+    }
+  }
+  let pd = paydayOf(today.getFullYear(), today.getMonth());
+  if (pd < today) pd = paydayOf(today.getFullYear(), today.getMonth() + 1);
+  const nextPay = pd;
+  for (let q = new Date(pd); q <= target; q = paydayOf(q.getFullYear(), q.getMonth() + 1)) paydays++;
+  const payIn = Math.round((nextPay - today) / 86400000);
+  const off = new Date(now.getFullYear(), now.getMonth(), now.getDate(), OFF_HOUR);
+  const wdNow = now.getDay();
+  const mins = Math.ceil((off - now) / 60000);
+  const offText = wdNow === 0 || wdNow === 6 ? '오늘은 주말' : mins <= 0 ? '퇴근함' : mins >= 60 ? `${Math.floor(mins / 60)}시간 ${mins % 60}분` : `${mins}분`;
+  return {
+    weekends, workdays, paydays, payIn,
+    payDate: `${nextPay.getMonth() + 1}월 ${nextPay.getDate()}일`,
+    payText: payIn === 0 ? '오늘' : `${payIn}일 뒤`,
+    offText, offMins: mins,
+  };
+}
+
 function fill(t, s) {
   return t.replace(/\{(\w+)\}/g, (_, k) => (s[k] ?? ''));
 }
 
 
+const LIFE_LINES = [
+  '남은 주말 {weekends}번. 주말만 세면 금방이다',
+  '남은 월급날 {paydays}번. 다음 월급은 {payDate}, {payText}',
+  '남은 퇴근 {workdays}번. 오늘 퇴근까지 {offText}',
+  '남은 짬밥 {meals}끼. 오늘 메뉴는 뭐냐',
+  '월급 {paydays}번 더 받으면 전역',
+  '퇴근까지 {offText}. 일하는 척이라도 해',
+  '주말 {weekends}번만 버티면 됨',
+];
 const SOLO = [
   '주저하는 연인들을 위해? 주저하는 이병을 위해. 아직 {d}일',
   '뜨거운 여름밤은 가고 남은 건 {d}일',
@@ -143,6 +188,7 @@ function line(type) {
   if (type === 'smash') return fill(pick(SMASH), s);
   if (s.d <= 30 && Math.random() < 0.4) return fill(pick(SOON), s);
   if (fairy && Math.random() < 0.3) return fill(pick(FAIRY), s);
+  if (Math.random() < 0.25) return fill(pick(LIFE_LINES), s);
   const pool = s.pct !== null ? SOLO.concat(SOLO_PCT) : SOLO;
   return fill(pick(pool), s);
 }
@@ -463,9 +509,9 @@ async function showCard() {
   setTimeout(() => wrap.remove(), 6000);
 }
 
-function makeBlast(cx, cy, text, style) {
+function makeBlast(cx, cy, text, style, scale) {
   const chars = [...text];
-  const fs = Math.sqrt((W() * H() * 0.2) / (chars.length * 0.95));
+  const fs = Math.sqrt((W() * H() * 0.2) / (chars.length * 0.95)) * (scale || 1);
   const bw = fs * chars.length * 0.92, bh = fs * 1.1;
   const d = document.createElement('div');
   d.className = 'blast';
@@ -569,7 +615,7 @@ class Pet {
   }
   setTag(text) { this.tag.textContent = text; }
   busy() {
-    return ['drag', 'leave', 'smash', 'dance', 'write', 'toe', 'star', 'grip', 'grip-go', 'sleep', 'sign', 'slime', 'brush', 'flip', 'rest', 'stretch', 'wave', 'horn', 'bread'].includes(this.state) || this.spinT >= 0 || this.morphed;
+    return ['drag', 'leave', 'smash', 'dance', 'write', 'toe', 'star', 'grip', 'grip-go', 'sleep', 'sign', 'slime', 'brush', 'flip', 'rest', 'stretch', 'wave', 'horn', 'bread', 'hi5', 'rps', 'tag'].includes(this.state) || this.spinT >= 0 || this.morphed;
   }
   walkTo(x, y) {
     this.tx = clamp(x, 10, W() - PW - 10);
@@ -860,7 +906,8 @@ class Pet {
           this.vx = this.vy = 0;
         }
       }
-      if (this.state === 'walk' || this.state === 'leave' || this.state === 'grip-go') {
+      if (this.state === 'walk' || this.state === 'leave' || this.state === 'grip-go' || this.state === 'tag') {
+        if (this.state === 'tag') { /* 속도는 tag 상태에서 계산 */ } else {
         const dx = this.tx - this.x, dy = this.ty - this.y;
         const dist = Math.hypot(dx, dy);
         const sp = this.maxSpeed * (fly ? 1.5 : 1) * (chasing || orbiting || this.state === 'grip-go' ? 2.4 : 1);
@@ -880,6 +927,7 @@ class Pet {
             this.onArrive = null;
             f();
           }
+        }
         }
       } else {
         const d = Math.max(0, 1 - dt * 7);
@@ -1049,6 +1097,55 @@ class Pet {
           this.state = 'idle';
           this.until = now + 1500;
           this.breadEl.className = 'bread';
+        }
+      }
+      if (this.state === 'hi5') {
+        this.actT += dt;
+        const t = this.actT;
+        const reach = t < 0.5 ? t / 0.5 : t < 0.9 ? 1 : Math.max(0, 1 - (t - 0.9) / 0.4);
+        darm = [12, -40 - 90 * reach];
+        danceLean = 6 * reach;
+        if (!this.clapped && t > 0.5 && this.leadHi5) {
+          this.clapped = true;
+          SFX.play('clap');
+          makeBlast(this.x + PW / 2 + this.facing * 46, this.y - 30, pick(['짝!', '하이파이브!', '나이스!']), null, 0.45);
+          makeSpark(this.x + PW / 2 + this.facing * 46, this.y + 20);
+        }
+        if (t >= this.actDur) { this.state = 'idle'; this.until = now + 1500; }
+      }
+      if (this.state === 'rps') {
+        this.actT += dt;
+        const t = this.actT;
+        darm = t < 1.6 ? [12, -60 + Math.sin(t * 12) * 26] : [12, -110];
+        if (t >= this.actDur) { this.state = 'idle'; this.until = now + 1200; }
+      }
+      if (this.state === 'tag') {
+        this.actT += dt;
+        const o = this.tagOther;
+        if (this.tagIt && o && this.actT < 1) {
+          this.tx = this.x;
+          this.ty = this.y;
+          if (!this.counted) { this.counted = true; this.say('하나 둘 셋', 1000); }
+        } else if (this.tagIt && o) {
+          this.tx = o.x;
+          this.ty = o.y;
+        } else if (Math.hypot(this.tx - this.x, this.ty - this.y) < 30) {
+          this.tx = clamp(rand(0, W()), 10, W() - PW - 10);
+          this.ty = clamp(rand(140, H() - PH - 10), 120, H() - PH - 8);
+        }
+        const dx = this.tx - this.x, dy = this.ty - this.y, dist = Math.hypot(dx, dy) || 1;
+        const sp = this.tagIt ? 230 : 210;
+        this.vx += ((dx / dist) * sp - this.vx) * Math.min(1, dt * 5);
+        this.vy += ((dy / dist) * sp - this.vy) * Math.min(1, dt * 5);
+        if (this.tagIt && o && this.actT > 1 && Math.hypot(o.x - this.x, o.y - this.y) < 40) {
+          makeBlast(o.x + PW / 2, o.y - 30, pick(['잡았다!', '술래 너!', '꽝!']), null, 0.45);
+          SFX.play('pop');
+          o.say(pick(['아 억울해', '반칙이야', '다시 해']), 1800);
+          this.say('잡았다', 1400);
+          [this, o].forEach((q) => { q.state = 'idle'; q.vx = q.vy = 0; q.until = now + 2000; q.tagOther = null; });
+        } else if (this.actT > 10) {
+          if (this.tagIt) this.say('아 못 잡겠다', 1600);
+          [this, o].forEach((q) => { if (q) { q.state = 'idle'; q.until = now + 1500; q.tagOther = null; } });
         }
       }
       if (this.state === 'horn') {
@@ -1577,6 +1674,8 @@ function chatter() {
   const here = list().filter((p) => !p.busy());
   if (!here.length) return;
   const [a, b] = Math.random() < 0.5 ? here : here.slice().reverse();
+  if (b && Math.random() < 0.08) { duoAct(pick(['hi5', 'rps', 'rps', 'tag', 'nap'])); return; }
+  if (Math.random() < 0.03) { showReceipt(a); a.say('정산 시간', 1600); return; }
   const r = Math.random();
   if (r < 0.2 && b) {
     const pair = duo();
@@ -1646,7 +1745,102 @@ function checkDuo(now) {
   if (ps.some((p) => !p.el.isConnected)) { duoPending = null; return; }
   if (ps.every((p) => p.ready) || now - at > 6000) {
     duoPending = null;
+    if (kind.startsWith('x:')) { ps.forEach((p) => { p.state = 'idle'; p.onArrive = null; p.vx = p.vy = 0; }); startDuo(kind.slice(2), ps[0], ps[1]); return; }
     ps.forEach((p) => { p.state = 'idle'; p.onArrive = null; p.vx = p.vy = 0; p.dance(kind); p.actT = 0; p.lastBeat = -1; if (kind === 'pop') p.facing = 1; });
+  }
+}
+
+const RPS = ['가위', '바위', '보'];
+function startDuo(kind, l, r) {
+  l.facing = 1;
+  r.facing = -1;
+  if (kind === 'hi5') {
+    [l, r].forEach((p, i) => { p.state = 'hi5'; p.actT = 0; p.actDur = 1.5; p.clapped = false; p.leadHi5 = i === 0; });
+    l.say(pick(['하이파이브!', '손 줘', '나이스']), 1200);
+  } else if (kind === 'rps') {
+    [l, r].forEach((p) => { p.state = 'rps'; p.actT = 0; p.actDur = 3.2; });
+    l.say('가위바위보!', 1400);
+    r.say('가위바위보!', 1400);
+    let a = Math.floor(Math.random() * 3), b = Math.floor(Math.random() * 3);
+    setTimeout(() => {
+      SFX.play('pop');
+      l.say(RPS[a], 1600);
+      r.say(RPS[b], 1600);
+    }, 1600);
+    setTimeout(() => {
+      if (a === b) { makeBlast((l.x + r.x) / 2 + PW / 2, l.y - 30, '비김!', null, 0.45); return; }
+      const lWin = (a === 0 && b === 2) || (a === 1 && b === 0) || (a === 2 && b === 1);
+      const [w, lo] = lWin ? [l, r] : [r, l];
+      makeBlast(w.x + PW / 2, w.y - 30, pick(['이겼다!', '승리!', '나이스!']), null, 0.45);
+      SFX.play('sparkle');
+      w.say(pick(['내가 이김', '전역도 내가 먼저', '꿀밤 한 대']), 1800);
+      lo.say(pick(['삼세판', '아 억울해', '다시 해']), 1800);
+      setTimeout(() => { w.dance('heart'); lo.rest(); }, 400);
+    }, 2600);
+  } else if (kind === 'nap') {
+    [l, r].forEach((p, i) => setTimeout(() => { p.state = 'idle'; p.sleep(); }, i * 500));
+  }
+}
+function duoAct(kind) {
+  const ps = list().filter((p) => p.state !== 'drag' && p.state !== 'leave' && !p.morphed);
+  if (ps.length < 2) return;
+  if (kind === 'tag') {
+    ps.forEach((p) => { if (p.busy()) p.state = 'idle'; });
+    const [it, run] = Math.random() < 0.5 ? ps : [ps[1], ps[0]];
+    it.state = 'tag'; it.actT = 0; it.tagIt = true; it.tagOther = run; it.counted = false;
+    run.state = 'tag'; run.actT = 0; run.tagIt = false; run.tagOther = it;
+    run.tx = run.x < W() / 2 ? W() - PW - 40 : 40;
+    run.ty = run.y;
+    it.say(pick(['거기 서!', '잡는다', '술래 시작']), 1600);
+    run.say(pick(['잡아봐라', '메롱', '못 잡지']), 1600);
+    return;
+  }
+  duoDance('x:' + kind);
+}
+
+function showReceipt(p) {
+  const s = stats();
+  document.querySelectorAll('.receipt').forEach((e) => e.remove());
+  const d = document.createElement('div');
+  d.className = 'receipt';
+  const n = new Date();
+  const p2 = (x) => String(x).padStart(2, '0');
+  const rows = [
+    ['전역까지', s.d > 0 ? `D-${s.d}` : s.d === 0 ? 'D-DAY' : `D+${-s.d}`],
+    ['남은 짬밥', `${s.meals}끼`],
+    ['남은 주말', `${s.weekends}번`],
+    ['남은 월급날', `${s.paydays}번`],
+    ['다음 월급', `${s.payDate} (${s.payText})`],
+    ['남은 퇴근', `${s.workdays}번`],
+    ['오늘 퇴근까지', s.offText],
+  ];
+  d.innerHTML = `<div class="rc-in"><div class="rc-h">전역까지 마트</div><div class="rc-s">${n.getFullYear()}.${p2(n.getMonth() + 1)}.${p2(n.getDate())} ${p2(n.getHours())}:${p2(n.getMinutes())}</div><div class="rc-line"></div>` +
+    rows.map(([a, b]) => `<div class="rc-r"><span>${a}</span><b>${b}</b></div>`).join('') +
+    `<div class="rc-line"></div><div class="rc-r rc-t"><span>합계</span><b>${s.d > 0 ? s.d : 0}일</b></div><div class="rc-bar"></div><div class="rc-s">환불 불가</div></div>`;
+  const x = clamp(p.x + PW / 2 - 110, 10, W() - 230);
+  const y = clamp(p.y - 330, 40, H() - 360);
+  d.style.left = x + 'px';
+  d.style.top = y + 'px';
+  stage.appendChild(d);
+  for (let i = 0; i < 9; i++) setTimeout(() => SFX.play('tick'), i * 110);
+  setTimeout(() => d.classList.add('out'), 8000);
+  setTimeout(() => d.remove(), 8800);
+}
+
+function lifeEvent(kind) {
+  const ps = list();
+  if (kind === 'offwork') {
+    makeBlast(W() / 2, H() / 2, pick(['퇴근!', '칼퇴!', '퇴근이다!']), 'burst');
+    SFX.play('fanfare');
+    showBanner({ title: '퇴근 시간', body: fill(new Date().getDay() === 5 ? '오후 5시. 주말 시작. 남은 주말 {weekends}번' : '오후 5시. 남은 퇴근 {workdays}번', stats()) });
+    ps.forEach((p) => { if (!p.busy()) p.dance('shimmy'); });
+  } else if (kind === 'payday') {
+    makeBlast(W() / 2, H() / 2, pick(['월급날!', '월급 입금!', '통장 확인!']), 'extrude');
+    SFX.play('sparkle');
+    showBanner({ title: '오늘은 월급날', body: fill('남은 월급날 {paydays}번. 텅장 되기 전에 확인', stats()) });
+    ps.forEach((p) => { if (!p.busy()) p.dance('heart'); });
+  } else if (kind === 'offsoon') {
+    showBanner({ title: '퇴근 10분 전', body: '짐 싸는 척 시작' });
   }
 }
 
@@ -1695,6 +1889,12 @@ window.petWorld = {
   horn: (slot) => { const p = pickPet(slot); if (p) p.horn(); },
   reloadCards: () => { cardPool = null; },
   milestone: (d) => runMilestone(Number(d)),
+  hi5: () => duoAct('hi5'),
+  rps: () => duoAct('rps'),
+  nap: () => duoAct('nap'),
+  tag: () => duoAct('tag'),
+  receipt: (slot) => { const p = pickPet(slot); if (p) { p.say(pick(['계산해 줄게', '영수증 나왔다', '남은 거 정산']), 1800); showReceipt(p); } },
+  life: (k) => lifeEvent(k),
   banner: (o) => {
     if (o && o.kind === 'random') showBanner({ title: pick(['오늘의 잔소리', '전역 알림', '긴급 공지', '훈련 알림']), body: line() });
     else showBanner(o || {});

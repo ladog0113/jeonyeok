@@ -282,7 +282,7 @@ const OUTFIT_NAMES = {
 };
 const ACTIONS = [
   ['한마디 해봐', 'poke'], ['화면 깨기', 'smash'], ['빙글빙글', 'spin'], ['분신술', 'clone'], ['발가락 따봉', 'toe'],
-  ['손가락 별', 'star'], ['그립감', 'grip'], ['공중제비', 'flip'], ['낙서하기', 'scribble'], ['사인하기', 'sign'], ['붓글씨', 'brush'], ['앉아서 쉬기', 'rest'], ['기지개', 'stretch'], ['손 흔들기', 'wave'], ['클락션 빵빵', 'horn'], ['빵 뜯기 (포토카드)', 'bread'], ['오리 변신 (20초)', 'morph'], ['슬라임 터뜨리기', 'slime'], ['잠자기', 'sleep'],
+  ['손가락 별', 'star'], ['그립감', 'grip'], ['공중제비', 'flip'], ['낙서하기', 'scribble'], ['사인하기', 'sign'], ['붓글씨', 'brush'], ['앉아서 쉬기', 'rest'], ['기지개', 'stretch'], ['손 흔들기', 'wave'], ['클락션 빵빵', 'horn'], ['남은 것 영수증', 'receipt'], ['둘이 하이파이브', 'hi5'], ['둘이 가위바위보', 'rps'], ['둘이 술래잡기', 'tag'], ['둘이 낮잠', 'nap'], ['빵 뜯기 (포토카드)', 'bread'], ['오리 변신 (20초)', 'morph'], ['슬라임 터뜨리기', 'slime'], ['잠자기', 'sleep'],
 ];
 const DANCE_ITEMS = [
   ['파라파라', 'dance'], ['호루라기 춤', 'whistle'], ['어깨 털기', 'shimmy'], ['하트 춤', 'heart'], ['파워 댄스', 'power'], ['BAD', 'pop'], ['응원 춤', 'cheer'],
@@ -985,6 +985,30 @@ function greetToday() {
   const body = d > 0 ? `오늘은 D-${d}. 오늘도 ${d}일 중 하루 줄었다` : d === 0 ? '오늘 전역합니다' : `전역하고 ${-d}일 지났다`;
   sendPrimary('banner', { title: '좋은 아침', body });
 }
+function lifeTick() {
+  const cfg = loadConfig() || {};
+  if (!started || cfg.enabled === false) return;
+  const n = new Date();
+  const wd = n.getDay();
+  const key = todayKey();
+  const ev = cfg.lifeDone || {};
+  const fire = (k) => {
+    if (ev[k] === key) return;
+    saveConfig({ ...(loadConfig() || {}), lifeDone: { ...ev, [k]: key } });
+    ev[k] = key;
+    sendPrimary('life', k);
+  };
+  const hm = n.getHours() * 60 + n.getMinutes();
+  if (wd >= 1 && wd <= 5) {
+    if (hm >= 16 * 60 + 50 && hm < 17 * 60) fire('offsoon');
+    if (hm >= 17 * 60 && hm < 17 * 60 + 15) fire('offwork');
+  }
+  const pd = new Date(n.getFullYear(), n.getMonth(), 25);
+  if (pd.getDay() === 6) pd.setDate(24);
+  if (pd.getDay() === 0) pd.setDate(23);
+  if (n.getDate() === pd.getDate() && n.getHours() >= 9) fire('payday');
+}
+
 function scheduleBanner() {
   const cfg = loadConfig() || {};
   const freq = cfg.bannerFreq || 'normal';
@@ -1083,6 +1107,8 @@ app.whenReady().then(() => {
   buildMenu();
   setTimeout(() => { greetToday(); checkMilestone(); }, 7000);
   setInterval(checkMilestone, 30 * 60000);
+  setInterval(lifeTick, 30000);
+  setTimeout(lifeTick, 9000);
   scheduleBanner();
   if (process.env.JY_SELFTEST) runSelftest();
 });
