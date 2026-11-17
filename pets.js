@@ -613,7 +613,11 @@ class Pet {
     this.bubbleTimer = setTimeout(() => this.bubble.classList.remove('show'), ms);
     this.talkUntil = performance.now() + Math.min(ms - 300, 500 + text.length * 75);
   }
-  setTag(text) { this.tag.textContent = text; }
+  setTag(html) {
+    if (html === this.tagHTML) return;
+    this.tagHTML = html;
+    this.tag.innerHTML = html;
+  }
   busy() {
     return ['drag', 'leave', 'smash', 'dance', 'write', 'toe', 'star', 'grip', 'grip-go', 'sleep', 'sign', 'slime', 'brush', 'flip', 'rest', 'stretch', 'wave', 'horn', 'chime', 'bread', 'hi5', 'rps', 'tag'].includes(this.state) || this.spinT >= 0 || this.morphed;
   }
@@ -639,7 +643,10 @@ class Pet {
     this.offY = e.clientY - this.y;
     this.dragVX = 0;
     this.el.classList.add('dragging');
-    this.say(line('drag'), 2000);
+    this.downAt = performance.now();
+    this.downX = e.clientX;
+    this.downY = e.clientY;
+    this.dragMoved = false;
     dragging = this;
   }
   endDrag() {
@@ -1674,6 +1681,10 @@ document.addEventListener('mousemove', (e) => {
     sendAway(p, { x: e.clientX - p.offX, y: e.clientY - p.offY, px: e.clientX, py: e.clientY });
     return;
   }
+  if (dragging && !dragging.dragMoved && Math.hypot(e.clientX - dragging.downX, e.clientY - dragging.downY) > 5) {
+    dragging.dragMoved = true;
+    dragging.say(line('drag'), 2000);
+  }
   const hit = document.elementFromPoint(e.clientX, e.clientY) || document.body;
   const over = !!(dragging || (hit.closest('.pet') && !hit.closest('.pet.clone')));
   setIgnore(!over);
@@ -1685,10 +1696,20 @@ document.addEventListener('mouseup', (e) => {
     sendAway(p, { x: e.clientX - p.offX, y: e.clientY - p.offY, px: e.clientX, py: e.clientY });
     return;
   }
+  dragging = null;
+  if (!p.dragMoved && performance.now() - p.downAt < 450) {
+    p.el.classList.remove('dragging');
+    p.state = 'idle';
+    p.vx = p.vy = 0;
+    p.until = performance.now() + 1500;
+    if (window.jyClick) window.jyClick(p, e.clientY - p.y);
+    else p.say(line());
+    return;
+  }
+  if (p.hiding && window.jyFound) window.jyFound(p);
   p.x = clamp(p.x, 0, W() - PW);
   p.y = clamp(p.y, fairy ? 40 : 110, H() - PH);
   p.endDrag();
-  dragging = null;
 });
 document.addEventListener('dblclick', (e) => {
   const el = e.target.closest && e.target.closest('.pet');
@@ -1703,16 +1724,27 @@ window.addEventListener('resize', () => {
   });
 });
 
+const RANKS = ['이병', '일병', '상병', '병장'];
+function rankOf(d) { return d > 480 ? 0 : d > 300 ? 1 : d > 120 ? 2 : 3; }
+const escT = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 function refreshTags() {
   const s = stats();
   const t = s.d > 0 ? `D-${s.d}` : s.d === 0 ? 'D-DAY' : `D+${-s.d}`;
-  list().forEach((p) => p.setTag(t));
+  const rk = rankOf(s.d);
+  const names = cfg.petNames || {};
+  list().forEach((p) => {
+    let h = '';
+    if (cfg.rankTag !== false) h += `<i class="rk">${'<b></b>'.repeat(rk + 1)}</i><span class="rn">${RANKS[rk]}</span>`;
+    const nm = cfg.nameTag !== false && names[p.slot] ? String(names[p.slot]).slice(0, 8) : '';
+    if (nm) h += `<span class="nm">${escT(nm)}</span>`;
+    p.setTag(h + `<span class="dd">${t}</span>`);
+  });
   refreshFrameText();
 }
 
 function chatter() {
   setTimeout(chatter, rand(9000, 22000));
-  const here = list().filter((p) => !p.busy() && !p.talking);
+  const here = list().filter((p) => !p.busy() && !p.talking && !p.hiding);
   if (!here.length) return;
   const [a, b] = Math.random() < 0.5 ? here : here.slice().reverse();
   if (b && Math.random() < 0.08) { duoAct(pick(['hi5', 'rps', 'rps', 'tag', 'nap'])); return; }
@@ -1793,6 +1825,7 @@ function wake() {
   for (const p of [...list(), ...clones]) {
     try {
       p.last = n;
+      if (p.hiding) continue;
       p.x = clamp(p.x, 0, Math.max(0, W() - PW));
       p.y = clamp(p.y, 0, Math.max(0, H() - PH));
       if (p.tx != null) { p.tx = clamp(p.tx, 0, Math.max(0, W() - PW)); p.ty = clamp(p.ty, 0, Math.max(0, H() - PH)); }
@@ -1868,6 +1901,7 @@ function startDuo(kind, l, r) {
   }
 }
 function duoAct(kind) {
+  if (list().some((p) => p.hiding)) return;
   const ps = list().filter((p) => p.state !== 'drag' && p.state !== 'leave' && !p.morphed);
   if (ps.length < 2) return;
   if (kind === 'tag') {
@@ -1977,7 +2011,8 @@ window.petWorld = {
   horn: (slot) => { const p = pickPet(slot); if (p) p.horn(); },
   chime: (arg) => {
     const h = typeof arg === 'number' ? arg : null;
-    const p = typeof arg === 'string' ? pickPet(arg) : pickPet(Math.random() < 0.5 ? 'a' : 'b');
+    const free = list().filter((q) => !q.hiding);
+    const p = typeof arg === 'string' ? pickPet(arg) : free.length ? pick(free) : null;
     if (p) p.chime(h);
   },
   reloadCards: () => { cardPool = null; },

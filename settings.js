@@ -85,7 +85,12 @@
         return { food: Math.max(0, Math.round((v.food ?? 80) - mins * (100 / 1440))), mood: Math.max(0, Math.round((v.mood ?? 80) - mins * (100 / 600))) };
       };
       const bar = (n, col) => `<span style="display:inline-flex;align-items:center;gap:8px;min-width:150px"><span class="bar" style="flex:1;margin:0"><i style="width:${n}%;background:${col}"></i></span><span class="val" style="width:34px;text-align:right">${n}</span></span>`;
-      return ['a', 'b'].map((s) => `<div class="sec-h">${esc(D.slots[s])}</div><div class="group">
+      const names = c.petNames || {};
+      return `<div class="sec-h">이름표와 계급장</div><div class="group">
+        ${row('이름표', sw('nameTag', c.nameTag !== false))}
+        ${row('계급장 <span class="val">남은 날짜에 따라 이병, 일병, 상병, 병장</span>', sw('rankTag', c.rankTag !== false))}
+      </div>` + ['a', 'b'].map((s) => `<div class="sec-h">${esc(D.slots[s])}</div><div class="group">
+        ${row('이름', `<input type="text" data-petname="${s}" maxlength="8" placeholder="이름 없음" value="${esc(names[s] || '')}">`)}
         ${row('옷', `<select data-outfit="${s}">${opts(s)}</select>`)}
         ${row('배부름', `${bar(cv(s).food, '#ff9f0a')}${btn('slotAct', '밥 주기', 'feed:' + s)}`)}
         ${row('기분', `${bar(cv(s).mood, '#ff375f')}${btn('slotAct', '쓰다듬기', 'petpet:' + s)}`)}
@@ -183,6 +188,7 @@
       const u = await api.settingsDo('faceThumb', img.dataset.face);
       if (u && u !== true) img.src = u;
     });
+    root.querySelectorAll('[data-petname]').forEach((el) => (el.onchange = () => { D.cfg.petNames = { ...(D.cfg.petNames || {}), [el.dataset.petname]: el.value.trim() }; api.settingsPatch({ petNames: D.cfg.petNames }); }));
     root.querySelectorAll('[data-city]').forEach((s) => (s.onchange = () => api.settingsPatch({ city: s.value })));
     root.querySelectorAll('[data-capture]').forEach((r) => (r.onclick = () => api.settingsPatch({ capture: r.dataset.capture })));
     root.querySelectorAll('[data-fstyle]').forEach((b) => (b.onclick = () => api.settingsPatch({ frameStyle: b.dataset.fstyle, capture: 'photo' })));

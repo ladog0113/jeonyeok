@@ -81,7 +81,7 @@
   function bump(p, food, mood) {
     const v = care[p.slot] || (care[p.slot] = decay({}));
     v.food = Math.min(100, v.food + food);
-    v.mood = Math.min(100, v.mood + mood);
+    v.mood = Math.max(0, Math.min(100, v.mood + mood));
     if (p.sulk && v.mood >= 35) { p.sulk = false; p.say(pick(['풀렸다', '이번만 봐줌', '헤헤']), 1800); }
     saveCare(p.slot);
   }
@@ -164,7 +164,7 @@
     if (++careTick % 60 === 0) for (const p of list()) saveCare(p.slot);
   }
   const origBusy = Pet.prototype.busy;
-  Pet.prototype.busy = function () { return origBusy.call(this) || !!this.sulk; };
+  Pet.prototype.busy = function () { return origBusy.call(this) || !!this.sulk || !!this.hiding; };
 
   /* ---------- 마우스 장난 ---------- */
   function stealCursor(p) {
@@ -337,6 +337,124 @@
   }
 
 
+
+  /* ---------- 클릭 반응 ---------- */
+  const CLICK = {
+    head: ['머리 만지지 마', '쓰담 인정', '머리 눌리면 키 안 큼', '모자 삐뚤어진다', '헤헤'],
+    body: ['간지러워', '배 누르지 마', '거기 아니야', '푸흡', '군복 구겨진다'],
+    feet: ['발 밟았다', '아 발가락', '점프!', '군화 새 거임', '발은 왜'],
+  };
+  const WARN = ['그만 눌러', '손가락 안 아프냐', '계속 누르면 화낸다', '진짜 마지막 경고'];
+  function wiggle(p, k) { p.squash = k; }
+  function clickPet(p, ly) {
+    if (p.hiding) { found(p); return; }
+    if (p.angry) { p.say(pick(['말 걸지 마', '흥', '아직 화남']), 1400); return; }
+    const n = performance.now();
+    p.clicks = n - (p.lastClick || 0) < 1500 ? (p.clicks || 0) + 1 : 1;
+    p.lastClick = n;
+    if (p.clicks >= 10) { p.clicks = 0; rage(p); return; }
+    if (p.clicks >= 6) {
+      p.say(WARN[Math.min(WARN.length - 1, p.clicks - 6)], 1300);
+      wiggle(p, 1);
+      SFX.play('tick');
+      return;
+    }
+    const zone = ly < PH * 0.42 ? 'head' : ly < PH * 0.78 ? 'body' : 'feet';
+    p.say(pick(CLICK[zone]), 1500);
+    if (zone === 'head') { SFX.play('pop'); hearts(p, 2); bump(p, 0, 4); wiggle(p, 0.7); }
+    else if (zone === 'body') { SFX.play('flip'); wiggle(p, 1); p.spinT = 0; p.spinTurns = 1; }
+    else { SFX.play('whoosh'); wiggle(p, 1.2); makeBlast(p.x + PW / 2, p.y + PH - 10, pick(['움찔', '깡총', '앗']), 'bubble', 0.2); }
+  }
+  function rage(p) {
+    p.angry = true;
+    p.el.classList.add('angry');
+    SFX.play('boom');
+    makeBlast(p.x + PW / 2, p.y - 70, pick(['그만!!!', '화났다!!!', '열 번째다!!!']), 'shake', 0.6);
+    p.say(pick(['진짜 화났음', '말 걸지 마', '전역날까지 안 봄']), 2500);
+    bump(p, 0, -25);
+    const ms = p.maxSpeed;
+    setTimeout(() => {
+      p.maxSpeed = ms * 3;
+      p.walkTo(p.x < W() / 2 ? W() - PW - 30 : 30, p.y);
+    }, 900);
+    setTimeout(() => {
+      p.maxSpeed = ms;
+      p.angry = false;
+      p.el.classList.remove('angry');
+      p.say(pick(['이번만 봐줌', '이제 좀 풀림', '다신 그러지 마']), 1800);
+    }, 6000);
+  }
+  window.jyClick = clickPet;
+
+  /* ---------- 숨바꼭질 ---------- */
+  function tweenX(p, x, y, ms, done) {
+    const x0 = p.x, y0 = p.y, t0 = performance.now();
+    const st = () => {
+      const k = Math.min(1, (performance.now() - t0) / ms);
+      const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      p.x = x0 + (x - x0) * e;
+      p.y = y0 + (y - y0) * e;
+      if (k < 1) requestAnimationFrame(st); else if (done) done();
+    };
+    requestAnimationFrame(st);
+  }
+  function hideSeek(p) {
+    if (!p || p.busy() || p.morphed || p.talking || list().some((q) => q.hiding)) return;
+    const side = pick(['left', 'right', 'bottom', 'bottom']);
+    const yMid = rand(H() * 0.3, H() - PH - 40);
+    const spot = side === 'left' ? { x: -PW * 0.6, y: yMid, fx: 1, ex: 12, ey: yMid }
+      : side === 'right' ? { x: W() - PW * 0.4, y: yMid, fx: -1, ex: W() - PW - 12, ey: yMid }
+      : { x: rand(60, W() - PW - 60), y: H() - PH * 0.36, fx: Math.random() < 0.5 ? 1 : -1, ex: 0, ey: H() - PH - 8 };
+    if (side === 'bottom') spot.ex = spot.x;
+    p.say(pick(['숨는다! 찾아봐', '숨바꼭질 시작', '10초 센다. 아니 안 셈']), 1800);
+    SFX.play('whoosh');
+    setTimeout(() => {
+      if (p.state === 'drag' || !p.el.isConnected) return;
+      p.hiding = true;
+      p.hideAt = performance.now();
+      p.el.classList.add('hiding');
+      p.state = 'idle';
+      p.vx = p.vy = 0;
+      p.until = performance.now() + 1e9;
+      p.facing = spot.fx;
+      makePoof(p.x + PW / 2, p.y + PH / 2);
+      p.x = spot.ex; p.y = spot.ey;
+      tweenX(p, spot.x, spot.y, 700);
+      const other = list().find((q) => q !== p);
+      if (other) setTimeout(() => other.say(pick(['어디 갔지', '찾아줘', '숨었다. 찾으면 빵 준대']), 2200), 1500);
+      p.peekT = setInterval(() => {
+        if (!p.hiding) return;
+        p.el.classList.remove('peek'); void p.el.offsetWidth; p.el.classList.add('peek');
+      }, 7000);
+      p.hideTO = setTimeout(() => giveUp(p, spot), 90000);
+    }, 1200);
+  }
+  function endHide(p) {
+    p.hiding = false;
+    clearInterval(p.peekT);
+    clearTimeout(p.hideTO);
+    p.el.classList.remove('hiding', 'peek');
+    p.until = performance.now() + 2000;
+  }
+  function found(p) {
+    if (!p.hiding) return;
+    endHide(p);
+    const sec = Math.round((performance.now() - p.hideAt) / 1000);
+    SFX.play('sparkle');
+    makeBlast(clamp(p.x + PW / 2, 120, W() - 120), clamp(p.y - 40, 80, H() - 120), '찾았다!', 'pop', 0.5);
+    p.say(sec < 10 ? '너무 빨리 찾는데' : `${sec}초 만에 들킴`, 2000);
+    tweenX(p, clamp(p.x, 20, W() - PW - 20), clamp(p.y, fairy ? 60 : 120, H() - PH - 10), 500, () => {
+      setTimeout(() => { p.say('찾은 상이다', 1500); setTimeout(() => p.bread(), 600); }, 400);
+    });
+  }
+  function giveUp(p, spot) {
+    if (!p.hiding) return;
+    endHide(p);
+    tweenX(p, spot.ex, spot.ey, 600);
+    p.say(pick(['아무도 안 찾네', '나 여기 있었는데', '숨바꼭질 혼자 함']), 2400);
+  }
+  window.jyFound = (p) => { if (p.hiding) { endHide(p); p.say('끌려 나왔다', 1600); } };
+
   /* ---------- 캐릭터끼리 대화 ---------- */
   const TALK = [
     // [조건, 대본] 대본은 번갈아 말함. {키}는 stats 값
@@ -459,6 +577,7 @@
     weather: (w) => { weather = w; },
     careOf: () => care,
     talk: () => duoAct('talk'),
+    hide: (slot) => hideSeek(pickPet(slot)),
   });
   const origStart = W0.start;
   W0.start = function (...args) {
@@ -476,6 +595,7 @@
       if (r2 < 0.15) stealCursor(p);
       else if (r2 < 0.3) trashRun(p);
       else if (r2 < 0.45) snowman();
+      else if (r2 < 0.65) hideSeek(p);
     }, 4 * 60000);
     return r;
   };
