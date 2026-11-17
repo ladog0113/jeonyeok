@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, dialog, protocol, globalShortcut, clipboard: elClipboard, shell, ShareMenu } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, dialog, protocol, globalShortcut, clipboard: elClipboard, shell, ShareMenu, powerMonitor } = require('electron');
 const updater = require('./updater');
 const { execFile, execFileSync } = require('child_process');
 const os = require('os');
@@ -135,10 +135,86 @@ function createOverlay(display) {
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.setIgnoreMouseEvents(true, { forward: true });
   win.loadFile(path.join(__dirname, 'overlay.html'));
+  win.webContents.on('render-process-gone', (_e, d) => {
+    logPower('overlay gone: ' + (d && d.reason));
+    if (overlays.get(display.id) === win) overlays.delete(display.id);
+    setTimeout(() => { if (!win.isDestroyed()) win.destroy(); syncOverlays(); }, 500);
+  });
+  win.webContents.on('unresponsive', () => logPower('overlay unresponsive'));
   overlays.set(display.id, win);
   const cfg0 = loadConfig() || {};
   win.setContentProtection(cfg0.capture === 'work');
   if (cfg0.enabled === false) win.once('ready-to-show', () => win.hide());
+}
+
+/* ---------- 잠금, 잠자기 복구 ---------- */
+let screenAsleep = false;
+const powerLogPath = () => path.join(app.getPath('userData'), 'power.log');
+function logPower(msg) {
+  try { fs.appendFileSync(powerLogPath(), `${new Date().toISOString()} ${msg}\n`); } catch {}
+}
+const beats = new Map();
+ipcMain.on('overlay-beat', (e, h) => {
+  const w = BrowserWindow.fromWebContents(e.sender);
+  if (w) beats.set(w.id, { at: Date.now(), ...(h || {}) });
+});
+function kickOverlay(w) {
+  if (!w || w.isDestroyed()) return;
+  try {
+    w.setAlwaysOnTop(true, 'screen-saver');
+    w.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    w.setIgnoreMouseEvents(true, { forward: true });
+    const cfg = loadConfig() || {};
+    if (cfg.enabled !== false && !shotHidden.includes(w)) { w.hide(); setTimeout(() => { if (!w.isDestroyed()) w.showInactive(); }, 60); }
+    w.webContents.invalidate();
+    w.webContents.send('wake');
+  } catch (e) { logPower('kick: ' + e.message); }
+}
+function wakeAll(reason) {
+  screenAsleep = false;
+  logPower('wake: ' + reason);
+  setTimeout(() => {
+    syncOverlays();
+    for (const w of overlays.values()) kickOverlay(w);
+  }, 1200);
+  setTimeout(() => checkOverlays(true), 6000);
+}
+const stalls = new Map();
+function checkOverlays(afterWake) {
+  if (screenAsleep || !started) return;
+  const cfg = loadConfig() || {};
+  if (cfg.enabled === false) return;
+  for (const [id, w] of overlays) {
+    if (w.isDestroyed() || !w.ready || !w.isVisible() || shotHidden.includes(w)) continue;
+    const b = beats.get(w.id);
+    if (Date.now() - (w.readyAt || 0) < 12000) continue;
+    const dead = !b || Date.now() - b.at > 15000;
+    const stuck = b && b.frameAge > 4000;
+    if (!dead && !stuck) { stalls.delete(id); continue; }
+    const n = (stalls.get(id) || 0) + 1;
+    stalls.set(id, n);
+    if (dead || n >= 2 || afterWake) {
+      logPower(`overlay reload: ${dead ? 'no beat' : 'frame ' + b.frameAge + 'ms'}`);
+      stalls.delete(id);
+      beats.delete(w.id);
+      w.ready = false;
+      w.webContents.reload();
+    } else kickOverlay(w);
+  }
+}
+function watchPower() {
+  powerMonitor.on('suspend', () => { screenAsleep = true; logPower('suspend'); });
+  powerMonitor.on('lock-screen', () => { screenAsleep = true; logPower('lock'); });
+  powerMonitor.on('resume', () => wakeAll('resume'));
+  powerMonitor.on('unlock-screen', () => wakeAll('unlock'));
+  powerMonitor.on('user-did-become-active', () => { if (screenAsleep) wakeAll('active'); });
+  app.on('child-process-gone', (_e, d) => {
+    if (d && d.type === 'GPU') {
+      logError('gpu gone: ' + d.reason);
+      setTimeout(() => { for (const w of overlays.values()) if (!w.isDestroyed()) { w.ready = false; w.webContents.reload(); } }, 1500);
+    }
+  });
+  setInterval(() => checkOverlays(false), 5000);
 }
 
 function syncOverlays() {
@@ -700,6 +776,7 @@ ipcMain.handle('get-config', () => loadConfig());
 ipcMain.handle('overlay-init', (e) => {
   const win = BrowserWindow.fromWebContents(e.sender);
   win.ready = true;
+  win.readyAt = Date.now();
   return {
     cfg: loadConfig(),
     screens: overlays.size,
@@ -1030,6 +1107,7 @@ function diagnostics() {
     `설정 ${JSON.stringify(safe)}`,
     '', '[오류 기록]', tail(errLogPath(), 40),
     '', '[업데이트 기록]', tail(path.join(app.getPath('userData'), 'update.log'), 20),
+    '', '[잠금, 잠자기 기록]', tail(powerLogPath(), 30),
   ].join('\n');
 }
 
@@ -1104,18 +1182,34 @@ async function runSelftest() {
   fs.mkdirSync(out, { recursive: true });
   const res = { version: updater.version, path: __dirname, errors: [], checks: {} };
   const done = (code) => { fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify(res, null, 2)); app.exit(code); };
-  setTimeout(() => { res.errors.push('timeout'); done(1); }, 170000);
+  setTimeout(() => { res.errors.push('timeout'); done(1); }, 220000);
   if (process.env.JY_SELFTEST === 'version') return done(0);
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const cap = async (w, name) => { const img = await w.webContents.capturePage(); fs.writeFileSync(path.join(out, name + '.png'), img.toPNG()); };
   try {
     for (let i = 0; i < 60 && ![...overlays.values()].some((w) => w.ready); i++) await wait(500);
-    const ov = primaryOverlay();
+    let ov = primaryOverlay();
     res.checks.overlay = !!(ov && ov.ready);
     for (const w of overlays.values()) w.webContents.on('console-message', (_e, level, msg) => { if (level >= 3) res.errors.push('overlay console: ' + msg); });
     await wait(2500);
     await cap(ov, 'overlay');
     for (const [k, t] of [['bread', 3200], ['chime', 1300], ['horn', 2400], ['morph', 1800], ['feed', 3000], ['acryl', 1500], ['hi5', 5000], ['receipt', 1600]]) { ov.webContents.send(k, 'a'); await wait(t); await cap(ov, 'act-' + k); }
+    // 잠금 해제 복구
+    wakeAll('selftest');
+    await wait(4000);
+    const bw = beats.get(ov.id);
+    res.checks.wake = !!(bw && Date.now() - bw.at < 8000 && bw.pets > 0);
+    if (!res.checks.wake) res.errors.push('wake: ' + JSON.stringify(bw || null));
+    // 화면 프로세스가 죽었을 때 다시 뜨는지
+    const dispId = ov.displayId;
+    ov.webContents.forcefullyCrashRenderer();
+    let ov2 = null;
+    for (let i = 0; i < 30; i++) { await wait(500); ov2 = overlays.get(dispId); if (ov2 && ov2 !== ov && ov2.ready && beats.get(ov2.id)) break; }
+    const b2 = ov2 && beats.get(ov2.id);
+    res.checks.crashRecover = !!(ov2 && ov2 !== ov && b2 && b2.pets > 0);
+    if (!res.checks.crashRecover) res.errors.push('crash recover failed');
+    ov = ov2 || primaryOverlay();
+    await cap(ov, 'after-crash');
     ov.webContents.send('banner', { title: '자동 점검', body: '알림 배너 표시 확인' });
     await wait(900);
     await cap(ov, 'banner');
@@ -1175,6 +1269,7 @@ app.whenReady().then(() => {
   });
   if (process.platform === 'darwin' && app.dock) app.dock.hide();
   createTray();
+  watchPower();
   screen.on('display-added', syncOverlays);
   screen.on('display-removed', syncOverlays);
   screen.on('display-metrics-changed', syncOverlays);

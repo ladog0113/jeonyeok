@@ -1754,12 +1754,54 @@ function chatter() {
   else a.say(line());
 }
 
-function loop(now) {
-  list().forEach((p) => p.tick(now));
-  checkDuo(now);
-  clones.slice().forEach((c) => c.tick(now));
-  requestAnimationFrame(loop);
+let rafId = 0;
+let lastFrame = performance.now();
+const loopErrs = new Set();
+function loopErr(e) {
+  const m = String((e && e.stack) || e).slice(0, 300);
+  if (loopErrs.has(m)) return;
+  loopErrs.add(m);
+  if (window.api && window.api.logError) window.api.logError('loop: ' + m);
 }
+function step(now) {
+  for (const p of list()) { try { p.tick(now); } catch (e) { loopErr(e); } }
+  try { checkDuo(now); } catch (e) { loopErr(e); }
+  for (const c of clones.slice()) { try { c.tick(now); } catch (e) { loopErr(e); } }
+}
+function loop(now) {
+  rafId = requestAnimationFrame(loop);
+  lastFrame = performance.now();
+  step(now);
+}
+function restartLoop() {
+  cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+// rAF가 멈추면 다시 걸고, 그동안은 타이머로 움직임을 이어감
+setInterval(() => {
+  const n = performance.now();
+  if (n - lastFrame > 1500 && document.visibilityState === 'visible') {
+    restartLoop();
+    step(n);
+  }
+}, 250);
+// 잠금 해제, 잠자기 후 깨어날 때 상태 정리
+function wake() {
+  const n = performance.now();
+  duoPending = null;
+  for (const p of [...list(), ...clones]) {
+    try {
+      p.last = n;
+      p.x = clamp(p.x, 0, Math.max(0, W() - PW));
+      p.y = clamp(p.y, 0, Math.max(0, H() - PH));
+      if (p.tx != null) { p.tx = clamp(p.tx, 0, Math.max(0, W() - PW)); p.ty = clamp(p.ty, 0, Math.max(0, H() - PH)); }
+      if (p.until > n + 60000) p.until = n + 1000;
+    } catch (e) { loopErr(e); }
+  }
+  restartLoop();
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
+window.addEventListener('focus', wake);
 
 const pickPet = (slot) => pets[slot] || list()[0];
 
@@ -1886,6 +1928,8 @@ function lifeEvent(kind) {
 }
 
 window.petWorld = {
+  wake,
+  health: () => ({ frameAge: Math.round(performance.now() - lastFrame), pets: list().length, vis: document.visibilityState }),
   start(c, slots, n) {
     cfg = c;
     screens = n || 1;
@@ -1893,7 +1937,7 @@ window.petWorld = {
     slots.forEach((slot) => spawn({ slot }));
     applyFrame();
     setInterval(refreshTags, 60000);
-    requestAnimationFrame(loop);
+    restartLoop();
     const first = list()[0];
     if (first) setTimeout(() => first.say(line()), 1200);
     setTimeout(chatter, rand(8000, 14000));
