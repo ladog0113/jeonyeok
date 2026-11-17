@@ -735,7 +735,7 @@ class Pet {
     makePoof(this.x + PW / 2, this.y + PH / 2);
     SFX.play('poof');
     setTimeout(() => SFX.play('quack'), 350);
-    this.say(pick(['꽥', '20초만 오리할게', '나 지금 변신 중', '왕관 썼다 꽥']), 2200);
+    this.say(pick(['조나단 등장', '20초만 조나단할게', '나 지금 조나단', '조나단 왔다 꽥']), 2200);
   }
   unmorph() {
     this.morphed = false;
