@@ -1175,6 +1175,10 @@ class Pet {
           [this, o].forEach((q) => { if (q) { q.state = 'idle'; q.until = now + 1500; q.tagOther = null; } });
         }
       }
+      if (this.state !== 'chime' && this.clockEl && this.clockEl.classList.contains('on')) {
+        this.clockEl.classList.remove('on', 'ring');
+        this.el.classList.remove('chiming');
+      }
       if (this.state === 'chime') {
         this.actT += dt;
         const t = this.actT;
@@ -1185,6 +1189,7 @@ class Pet {
           this.shouted = true;
           this.clockEl.classList.add('ring');
           SFX.play('chime');
+          if (env.diaryAdd) env.diaryAdd('chime');
           makeBlast(this.x + PW / 2, this.y - 150, this.chimeH + '시!!!', pick(['burst', 'pop', 'extrude', 'stamp']));
         }
         mouthOpen = t > 0.55 && t < 2.4;
@@ -1686,7 +1691,7 @@ document.addEventListener('mousemove', (e) => {
     dragging.say(line('drag'), 2000);
   }
   const hit = document.elementFromPoint(e.clientX, e.clientY) || document.body;
-  const over = !!(dragging || (hit.closest('.pet') && !hit.closest('.pet.clone')));
+  const over = !!(window.jyCapture || dragging || hit.closest('.jy-click') || (hit.closest('.pet') && !hit.closest('.pet.clone')));
   setIgnore(!over);
 });
 document.addEventListener('mouseup', (e) => {
@@ -1854,7 +1859,7 @@ function duoDance(kind) {
   r.walkTo(mx + 52, my);
   l.onArrive = () => { l.ready = true; l.facing = 1; l.until = performance.now() + 10000; };
   r.onArrive = () => { r.ready = true; r.facing = -1; r.until = performance.now() + 10000; };
-  l.say(kind === 'x:talk' ? pick(['야', '잠깐 와봐', '할 말 있음']) : pick(['모여!', '같이 춰', '자리 잡아']), 1600);
+  l.say(kind === 'x:promote' ? pick(['집합!', '다 모여', '진급식 한다']) : kind === 'x:talk' ? pick(['야', '잠깐 와봐', '할 말 있음']) : pick(['모여!', '같이 춰', '자리 잡아']), 1600);
 }
 function checkDuo(now) {
   if (!duoPending) return;
@@ -1894,6 +1899,8 @@ function startDuo(kind, l, r) {
       lo.say(pick(['삼세판', '아 억울해', '다시 해']), 1800);
       setTimeout(() => { w.dance('heart'); lo.rest(); }, 400);
     }, 2600);
+  } else if (kind === 'promote') {
+    if (window.jyPromote) window.jyPromote(l, r);
   } else if (kind === 'talk') {
     if (window.jyTalk) window.jyTalk(l, r);
   } else if (kind === 'nap') {
@@ -1901,7 +1908,7 @@ function startDuo(kind, l, r) {
   }
 }
 function duoAct(kind) {
-  if (list().some((p) => p.hiding)) return;
+  if (list().some((p) => p.hiding || p.gaming)) return;
   const ps = list().filter((p) => p.state !== 'drag' && p.state !== 'leave' && !p.morphed);
   if (ps.length < 2) return;
   if (kind === 'tag') {

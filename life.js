@@ -2,6 +2,7 @@
 (function () {
   const api = window.petEnv || {};
   const now = () => performance.now();
+  const dadd = (k, n) => { try { if (api.diaryAdd) api.diaryAdd(k, n); } catch {} };
 
   /* ---------- 오늘의 아크릴 ---------- */
   function seeded(seed) {
@@ -112,6 +113,7 @@
           clearInterval(it);
           f.remove();
           bump(p, 45, 12);
+          dadd('fed');
           p.say(pick(['배부르다', '잘 먹었다', '전역할 때까지 먹을 거임']), 2000);
           hearts(p, 3);
         }
@@ -123,6 +125,7 @@
     hearts(p, 6);
     SFX.play('sparkle');
     bump(p, 0, 18);
+    dadd('petted');
     p.say(pick(['헤헤', '더 해줘', '좋다', '기분 좋아짐']), 1600);
   }
   const rub = { slot: null, dirs: [], lastX: 0, lastDir: 0, at: 0, cool: 0 };
@@ -164,7 +167,7 @@
     if (++careTick % 60 === 0) for (const p of list()) saveCare(p.slot);
   }
   const origBusy = Pet.prototype.busy;
-  Pet.prototype.busy = function () { return origBusy.call(this) || !!this.sulk || !!this.hiding; };
+  Pet.prototype.busy = function () { return origBusy.call(this) || !!this.sulk || !!this.hiding || !!this.gaming; };
 
   /* ---------- 마우스 장난 ---------- */
   function stealCursor(p) {
@@ -364,6 +367,7 @@
     else { SFX.play('whoosh'); wiggle(p, 1.2); makeBlast(p.x + PW / 2, p.y + PH - 10, pick(['움찔', '깡총', '앗']), 'bubble', 0.2); }
   }
   function rage(p) {
+    dadd('angry');
     p.angry = true;
     p.el.classList.add('angry');
     SFX.play('boom');
@@ -437,6 +441,7 @@
   function found(p) {
     if (!p.hiding) return;
     endHide(p);
+    dadd('hideFound');
     const sec = Math.round((performance.now() - p.hideAt) / 1000);
     SFX.play('sparkle');
     makeBlast(clamp(p.x + PW / 2, 120, W() - 120), clamp(p.y - 40, 80, H() - 120), '찾았다!', 'pop', 0.5);
@@ -447,6 +452,7 @@
   }
   function giveUp(p, spot) {
     if (!p.hiding) return;
+    dadd('hideMiss');
     endHide(p);
     tweenX(p, spot.ex, spot.ey, 600);
     p.say(pick(['아무도 안 찾네', '나 여기 있었는데', '숨바꼭질 혼자 함']), 2400);
@@ -546,6 +552,7 @@
   function runTalk(l, r) {
     const lines = pickTalk();
     if (!lines) return;
+    dadd('talks');
     const first = Math.random() < 0.5 ? l : r;
     const second = first === l ? r : l;
     const both = [first, second];
@@ -564,6 +571,326 @@
   }
   window.jyTalk = runTalk;
 
+
+  /* ---------- 화면 버튼 ---------- */
+  function floatBtn(p, label, onClick, ms) {
+    const b = document.createElement('button');
+    b.className = 'jy-click jy-btn';
+    b.type = 'button';
+    b.textContent = label;
+    stage.appendChild(b);
+    let dead = false;
+    const place = () => {
+      if (dead) return;
+      const right = p.x + PW + 150 < W();
+      b.style.left = (right ? p.x + PW + 4 : p.x - b.offsetWidth - 4) + 'px';
+      b.style.top = clamp(p.y + PH * 0.35, 8, H() - 40) + 'px';
+      requestAnimationFrame(place);
+    };
+    place();
+    const kill = () => { if (dead) return; dead = true; b.classList.add('out'); setTimeout(() => b.remove(), 300); setIgnore(true); };
+    b.onclick = () => { kill(); onClick(); };
+    const to = setTimeout(() => { if (!dead) { kill(); if (b.onTimeout) b.onTimeout(); } }, ms || 45000);
+    return { el: b, kill: () => { clearTimeout(to); kill(); }, set onTimeout(f) { b.onTimeout = f; } };
+  }
+  function petArg(arg) {
+    const q = typeof arg === 'string' ? pickPet(arg) : null;
+    return q && !q.hiding && !q.gaming ? q : freePet();
+  }
+  function freePet() {
+    const ps = list().filter((q) => !q.hiding && !q.morphed && !q.gaming && q.state !== 'drag');
+    return ps.length ? pick(ps) : null;
+  }
+
+  /* ---------- 진급 ---------- */
+  function confettiBurst(cx, cy, n) {
+    const cols = ['#ffd23f', '#ff5c8a', '#4cc9f0', '#80ed99', '#ffffff', '#b388ff'];
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('i');
+      c.className = 'cf';
+      c.style.left = cx + 'px';
+      c.style.top = cy + 'px';
+      c.style.background = pick(cols);
+      const a = rand(-Math.PI, 0), v = rand(180, 520);
+      c.style.setProperty('--dx', Math.cos(a) * v + 'px');
+      c.style.setProperty('--dy', Math.sin(a) * v + 'px');
+      c.style.setProperty('--r', rand(-720, 720) + 'deg');
+      c.style.animationDelay = rand(0, 0.15) + 's';
+      stage.appendChild(c);
+      setTimeout(() => c.remove(), 2600);
+    }
+  }
+  function insignia(rk, size) {
+    const d = document.createElement('div');
+    d.className = 'promo-rk';
+    d.style.width = size + 'px';
+    d.style.height = size * 1.1 + 'px';
+    d.innerHTML = '<b></b>'.repeat(rk + 1);
+    return d;
+  }
+  let pendingRank = null;
+  function promote(arg) {
+    const rk = typeof arg === 'number' ? arg : rankOf(stats().d);
+    pendingRank = rk;
+    const ps = list().filter((q) => !q.hiding && q.state !== 'drag');
+    ps.forEach((q) => { if (q.morphed && q.unmorph) q.unmorph(); });
+    if (ps.length >= 2) duoDance('x:promote');
+    else if (ps[0]) runPromote(null, ps[0]);
+  }
+  function runPromote(giver, recv) {
+    const rk = pendingRank == null ? rankOf(stats().d) : pendingRank;
+    pendingRank = null;
+    const name = RANKS[rk];
+    [giver, recv].forEach((q) => { if (q) { q.state = 'idle'; q.vx = q.vy = 0; q.until = performance.now() + 9000; q.talking = true; } });
+    if (giver) giver.say(`${name} 진급을 축하한다`, 2400);
+    SFX.play('whistle');
+    const ins = insignia(rk, 54);
+    const sx = giver ? giver.x + PW / 2 : recv.x + PW / 2;
+    const sy = giver ? giver.y - 120 : -80;
+    ins.style.left = sx - 27 + 'px';
+    ins.style.top = sy + 'px';
+    stage.appendChild(ins);
+    requestAnimationFrame(() => ins.classList.add('show'));
+    setTimeout(() => {
+      ins.classList.add('fly');
+      ins.style.left = recv.x + PW / 2 - 27 + 'px';
+      ins.style.top = recv.y + PH * 0.42 + 'px';
+    }, 1500);
+    setTimeout(() => {
+      ins.classList.add('pin');
+      SFX.play('fanfare');
+      makeBlast(clamp(recv.x + PW / 2, 200, W() - 200), clamp(recv.y - 90, 120, H() - 160), `${name} 진급!`, 'stamp', 0.75);
+      confettiBurst(recv.x + PW / 2, recv.y + 20, 90);
+      recv.say(pick(['충성!', '감사합니다!', `${name} ${recv.slot === 'a' ? '기타' : '마이크'}, 진급 신고합니다`]), 2600);
+      refreshTags();
+    }, 2500);
+    setTimeout(() => {
+      ins.classList.add('out');
+      setTimeout(() => ins.remove(), 600);
+      [giver, recv].forEach((q) => { if (q) q.talking = false; });
+      recv.dance('heart');
+      if (giver) setTimeout(() => giver.wave(), 300);
+    }, 5200);
+  }
+  window.jyPromote = runPromote;
+
+  /* ---------- 물 마시기 ---------- */
+  function cupOn(p, on) {
+    if (!p.cupEl) {
+      p.cupEl = document.createElement('div');
+      p.cupEl.className = 'cupprop';
+      p.cupEl.innerHTML = '<svg viewBox="0 0 30 36" width="100%" height="100%"><path d="M4 6 H26 L23 33 Q22.6 35 20.6 35 H9.4 Q7.4 35 7 33 Z" fill="#dff3ff" stroke="#2b2622" stroke-width="2" stroke-linejoin="round"/><path d="M6.2 14 H23.8 L21.9 32 Q21.6 33.4 20.2 33.4 H9.8 Q8.4 33.4 8.1 32 Z" fill="#6ec6ff"/><path d="M9 17 Q11 16 13 17" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
+      p.flipper.appendChild(p.cupEl);
+    }
+    p.cupEl.classList.toggle('on', on);
+    p.cupEl.classList.remove('drink');
+  }
+  function water(arg) {
+    const p = petArg(arg);
+    if (!p) return;
+    if (p.busy()) p.state = 'idle';
+    p.until = performance.now() + 46000;
+    cupOn(p, true);
+    SFX.play('pop');
+    p.say(pick(['물 마실 시간', '물 마셔', '두 시간 지났다. 물 한 잔']), 2600);
+    const btn = floatBtn(p, '같이 마시기', () => drink(true), 45000);
+    btn.onTimeout = () => { drink(false, p); };
+  }
+  function drink(together, solo) {
+    const ps = together ? list().filter((q) => !q.hiding) : [solo];
+    ps.forEach((q, i) => {
+      cupOn(q, true);
+      q.state = 'idle';
+      q.until = performance.now() + 4000;
+      setTimeout(() => {
+        q.cupEl.classList.add('drink');
+        for (let k = 0; k < 3; k++) setTimeout(() => { makeBlast(q.x + PW / 2 + 36, q.y + 6, '꿀꺽', 'bubble', 0.16); SFX.play('tick'); }, 300 + k * 450);
+        setTimeout(() => {
+          cupOn(q, false);
+          q.say(together ? pick(['캬', '시원하다', '물 최고']) : '혼자 마신다', 1800);
+          if (together) { bump(q, 3, 5); hearts(q, 2); }
+        }, 1900);
+      }, i * 250);
+    });
+    if (together) dadd('water');
+  }
+
+  /* ---------- 스트레칭 ---------- */
+  function stretchCall(arg) {
+    const p = petArg(arg);
+    if (!p) return;
+    if (p.busy()) p.state = 'idle';
+    p.until = performance.now() + 46000;
+    p.stretch();
+    p.say(pick(['앉아만 있었지? 기지개 켜자', '50분 앉아 있었다. 일어나', '허리 펴자']), 2800);
+    SFX.play('whistle');
+    const btn = floatBtn(p, '따라 하기', () => stretchTogether(), 45000);
+    btn.onTimeout = () => p.say('다음엔 꼭 해', 1800);
+  }
+  function stretchTogether() {
+    const ps = list().filter((q) => !q.hiding);
+    ps.forEach((q) => { q.state = 'idle'; q.until = performance.now() + 12000; q.talking = true; });
+    ps[0] && ps[0].say('10초 같이 간다', 1600);
+    const cx = W() / 2;
+    let n = 10;
+    const it = setInterval(() => {
+      if (n > 0) {
+        makeBlast(cx, H() * 0.28, String(n), 'pop', 0.32);
+        SFX.play('tick');
+        if (n % 2 === 0) ps.forEach((q) => { q.state = 'idle'; if (n === 6) q.wave(); else q.stretch(); });
+        n--;
+      } else {
+        clearInterval(it);
+        SFX.play('sparkle');
+        makeBlast(cx, H() * 0.28, '개운하다!', 'burst', 0.45);
+        ps.forEach((q) => { q.talking = false; q.say(pick(['개운하다', '허리 펴짐', '다시 일하자']), 1800); hearts(q, 3); bump(q, 0, 6); });
+        dadd('stretch');
+      }
+    }, 1000);
+  }
+
+  /* ---------- 일기 ---------- */
+  function showDiary(e) {
+    if (!e || !e.lines) return;
+    document.querySelectorAll('.diary').forEach((x) => x.remove());
+    const p = freePet() || list()[0];
+    const d = document.createElement('div');
+    d.className = 'diary';
+    const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+    d.innerHTML = `<div class="dy-h">${esc(e.title)}</div>${e.lines.map((l) => `<p>${esc(l)}</p>`).join('')}<div class="dy-by">${p ? (p.slot === 'a' ? '기타' : '마이크') : ''}</div>`;
+    stage.appendChild(d);
+    SFX.play('flip');
+    if (p) { p.say(pick(['오늘 일기 썼다', '일기 공개', '오늘 하루 정리']), 2400); }
+    setTimeout(() => { d.classList.add('out'); setTimeout(() => d.remove(), 500); }, 15000);
+  }
+
+  /* ---------- 짬밥 받기 ---------- */
+  const FOODS = [
+    { t: '밥', c: '#fffaf0', f: '#3b2a20', s: 1 },
+    { t: '김치', c: '#ff6b4a', f: '#fff', s: 1 },
+    { t: '계란', c: '#ffe066', f: '#5a4100', s: 1 },
+    { t: '국', c: '#ffb86b', f: '#5a2a00', s: 1 },
+    { t: '고기', c: '#a0522d', f: '#fff', s: 2 },
+    { t: '당직', c: '#2b2622', f: '#ff6b6b', s: -3, bad: true },
+  ];
+  let game = null;
+  function startGame(arg) {
+    if (game) return;
+    const p = petArg(arg);
+    if (!p) return;
+    if (p.busy()) p.state = 'idle';
+    p.gaming = true;
+    p.until = performance.now() + 1e9;
+    const hud = document.createElement('div');
+    hud.className = 'game-hud';
+    hud.innerHTML = '<span class="gt">짬밥 받기</span><span>점수 <b class="gs">0</b></span><span>남은 시간 <b class="gl">30</b></span><button class="jy-click gq" type="button">그만</button>';
+    stage.appendChild(hud);
+    const cover = document.createElement('div');
+    cover.className = 'game-cover';
+    stage.appendChild(cover);
+    game = { p, hud, cover, items: [], score: 0, t0: performance.now(), last: performance.now(), spawnAt: 0, x: p.x, combo: 0 };
+    hud.querySelector('.gq').onclick = () => endGame(true);
+    window.jyCapture = true;
+    setIgnore(false);
+    p.say('받아라 짬밥', 1600);
+    const other = list().find((q) => q !== p);
+    if (other) other.say('떨어뜨리면 안 된다', 1800);
+    SFX.play('whistle');
+    requestAnimationFrame(gameLoop);
+  }
+  function gameLoop(t) {
+    if (!game) return;
+    const g = game;
+    const dt = Math.min(0.05, (t - g.last) / 1000);
+    g.last = t;
+    const el = (t - g.t0) / 1000;
+    const left = Math.max(0, 30 - el);
+    g.hud.querySelector('.gl').textContent = Math.ceil(left);
+    const p = g.p;
+    if (!p.el.isConnected) { endGame(true); return; }
+    const tx = clamp(mouse.x - PW / 2, 0, W() - PW);
+    const nx = g.x + (tx - g.x) * Math.min(1, dt * 14);
+    if (Math.abs(nx - g.x) > 0.6) p.facing = nx > g.x ? 1 : -1;
+    g.x = nx;
+    p.x = nx;
+    p.y = H() - PH - 8;
+    p.state = 'idle';
+    p.vx = 0;
+    const every = Math.max(0.28, 0.75 - el * 0.016);
+    if (el > g.spawnAt && left > 0.8) {
+      g.spawnAt = el + every;
+      const f = Math.random() < Math.min(0.22, 0.08 + el * 0.005) ? FOODS[5] : pick(FOODS.slice(0, 5));
+      const d = document.createElement('div');
+      d.className = 'gfood' + (f.bad ? ' bad' : '');
+      d.textContent = f.t;
+      d.style.background = f.c;
+      d.style.color = f.f;
+      stage.appendChild(d);
+      g.items.push({ d, f, x: rand(20, W() - 80), y: -50, v: rand(220, 320) + el * 9, r: rand(-30, 30) });
+    }
+    for (const it of g.items.slice()) {
+      it.y += it.v * dt;
+      it.d.style.transform = `translate(${it.x.toFixed(1)}px, ${it.y.toFixed(1)}px) rotate(${it.r}deg)`;
+      const cx = it.x + 28;
+      if (it.y > p.y - 30 && it.y < p.y + 40 && cx > p.x - 6 && cx < p.x + PW + 6) {
+        g.items.splice(g.items.indexOf(it), 1);
+        it.d.remove();
+        g.score = Math.max(0, g.score + it.f.s);
+        g.hud.querySelector('.gs').textContent = g.score;
+        if (it.f.bad) {
+          SFX.play('crash');
+          makeBlast(p.x + PW / 2, p.y - 40, '당직 걸림', 'shake', 0.28);
+          p.say('아 당직', 1200);
+          g.combo = 0;
+        } else {
+          g.combo++;
+          SFX.play(it.f.s > 1 ? 'ding' : 'pop');
+          makeBlast(p.x + PW / 2, p.y - 30, g.combo >= 5 && g.combo % 5 === 0 ? `${g.combo}콤보!` : `+${it.f.s}`, 'bubble', g.combo >= 5 && g.combo % 5 === 0 ? 0.3 : 0.18);
+          p.squash = 0.6;
+        }
+      } else if (it.y > H() + 20) {
+        g.items.splice(g.items.indexOf(it), 1);
+        it.d.remove();
+        if (!it.f.bad) g.combo = 0;
+      }
+    }
+    if (left <= 0 && !g.items.length) { endGame(false); return; }
+    requestAnimationFrame(gameLoop);
+  }
+  function endGame(quit) {
+    if (!game) return;
+    const g = game;
+    game = null;
+    g.items.forEach((it) => it.d.remove());
+    g.cover.remove();
+    window.jyCapture = false;
+    setIgnore(true);
+    const p = g.p;
+    p.gaming = false;
+    p.until = performance.now() + 2500;
+    const s = g.score;
+    g.hud.innerHTML = `<span class="gt">짬밥 받기</span><span>${quit ? '그만둠' : '끝'}</span><span>점수 <b>${s}</b></span>`;
+    setTimeout(() => { g.hud.classList.add('out'); setTimeout(() => g.hud.remove(), 400); }, 3500);
+    if (quit) { p.say('다음에 마저 먹자', 1600); return; }
+    dadd('game');
+    try { const best = Number(localStorage.getItem('jy-game-best') || 0); if (s > best) { localStorage.setItem('jy-game-best', s); if (best) setTimeout(() => makeBlast(W() / 2, H() * 0.3, '최고 기록!', 'neon', 0.4), 600); } } catch {}
+    dadd('gameScore', s);
+    if (s >= 20) {
+      SFX.play('fanfare');
+      makeBlast(W() / 2, H() * 0.32, `${s}점!`, 'burst', 0.5);
+      p.say('짬밥 마스터. 빵 받아', 2000);
+      setTimeout(() => p.bread(), 1400);
+    } else if (s >= 10) {
+      SFX.play('sparkle');
+      makeBlast(W() / 2, H() * 0.32, `${s}점`, 'pop', 0.42);
+      p.say('배부르다. 빵은 덤', 1800);
+      setTimeout(() => p.bread(), 1400);
+    } else {
+      makeBlast(W() / 2, H() * 0.32, `${s}점`, 'wave', 0.38);
+      p.say(pick(['다음엔 잘하자', '반찬이 너무 빨랐다', '10점부터 빵 줌']), 2000);
+    }
+  }
+
   /* ---------- 연결 ---------- */
   const W0 = window.petWorld;
   Object.assign(W0, {
@@ -576,6 +903,11 @@
     careOf: () => care,
     talk: () => duoAct('talk'),
     hide: (slot) => hideSeek(pickPet(slot)),
+    promote,
+    water,
+    stretchCall,
+    diary: showDiary,
+    game: startGame,
   });
   const origStart = W0.start;
   W0.start = function (...args) {

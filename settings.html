@@ -85,7 +85,29 @@ input[type=text]:focus { box-shadow: 0 0 0 3px rgba(0,122,255,.35); }
 .pc .cnt { position: absolute; right: 5px; bottom: 5px; padding: 1px 6px; border-radius: 99px; font-size: 10px; font-weight: 700; background: rgba(0,0,0,.55); color: #fff; }
 .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 10; }
 .lightbox[hidden] { display: none; }
-.lightbox img { max-height: 84vh; max-width: 70vw; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,.45); }
+.lb-in { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.lb-bar { display: flex; gap: 8px; }
+.lightbox img { max-height: 78vh; max-width: 70vw; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,.45); }
+.deco { position: fixed; inset: 0; z-index: 20; background: var(--content); display: flex; }
+.deco[hidden] { display: none; }
+.deco-in { display: flex; gap: 18px; padding: 40px 18px 18px; width: 100%; box-sizing: border-box; }
+.deco-stage { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.06); border-radius: 10px; }
+.deco-stage canvas { max-width: 100%; max-height: calc(100vh - 80px); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.25); touch-action: none; }
+.deco-side { width: 230px; flex: none; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; }
+.deco-side .sec-h { margin: 8px 0 2px; }
+.deco-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.deco-grid .btn { padding: 6px 4px; }
+.deco-row { display: flex; gap: 6px; }
+.deco-row input { flex: 1; width: 0; min-width: 0; }
+.deco-chk { font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.deco-cols { display: flex; flex-wrap: wrap; gap: 7px; }
+.deco-cols button { width: 22px; height: 22px; border-radius: 50%; border: 0; box-shadow: 0 0 0 .5px rgba(0,0,0,.3); cursor: default; }
+.deco-cols button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--content), 0 0 0 4px var(--blue); }
+.deco-sl { font-size: 12px; display: flex; align-items: center; gap: 8px; }
+.deco-sl input { flex: 1; }
+.deco-foot { display: flex; gap: 6px; margin-top: 12px; }
+.deco-foot .btn { flex: 1; padding: 6px 0; }
+.deco-msg { font-size: 11px; color: var(--secondary); min-height: 14px; }
 .note { color: var(--secondary); font-size: 12px; padding: 6px 10px 0; }
 </style>
 </head>
@@ -95,7 +117,9 @@ input[type=text]:focus { box-shadow: 0 0 0 3px rgba(0,122,255,.35); }
   <header><h1 id="title"></h1></header>
   <div class="scroll" id="body"></div>
 </main>
-<div class="lightbox" id="lb" hidden><img id="lb-img" alt=""></div>
+<div class="lightbox" id="lb" hidden><div class="lb-in"><img id="lb-img" alt=""><div class="lb-bar"><button class="btn primary" id="lb-deco" type="button">꾸미기</button></div></div></div>
+<div class="deco" id="deco" hidden></div>
+<script src="deco.js"></script>
 <script src="settings.js"></script>
 </body>
 </html>

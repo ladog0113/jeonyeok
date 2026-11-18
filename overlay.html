@@ -21,6 +21,7 @@ window.petEnv = {
   recordCard: (id, rare) => window.api.recordCard(id, rare),
   careGet: () => window.api.careGet(),
   careSet: (s, v) => window.api.careSet(s, v),
+  diaryAdd: (k, n) => window.api.diaryAdd(k, n),
   weatherNow: () => window.api.weatherNow(),
   frameFor: async (cfg) => (cfg.frameFile ? window.api.frameData() : null),
   faceFor: async (slot, cfg) => {
@@ -40,7 +41,7 @@ window.petEnv = {
 <script>
 window.api.on('poke', (slot) => petWorld.poke(slot));
 window.api.on('smash', (slot) => petWorld.smash(slot));
-for (const k of ['spin', 'dance', 'neon', 'whistle', 'shimmy', 'heart', 'power', 'cheer', 'sign', 'slime', 'sleep', 'brush', 'flip', 'pop', 'rest', 'stretch', 'wave', 'horn', 'chime', 'bread', 'morph', 'receipt', 'hide', 'talk', 'hi5', 'rps', 'tag', 'nap', 'life', 'acryl', 'feed', 'petpet', 'steal', 'trash', 'weather', 'clone', 'toe', 'star', 'grip', 'scribble']) window.api.on(k, (slot) => petWorld[k](slot));
+for (const k of ['spin', 'dance', 'neon', 'whistle', 'shimmy', 'heart', 'power', 'cheer', 'sign', 'slime', 'sleep', 'brush', 'flip', 'pop', 'rest', 'stretch', 'wave', 'horn', 'chime', 'bread', 'morph', 'receipt', 'hide', 'game', 'promote', 'water', 'stretchCall', 'diary', 'talk', 'hi5', 'rps', 'tag', 'nap', 'life', 'acryl', 'feed', 'petpet', 'steal', 'trash', 'weather', 'clone', 'toe', 'star', 'grip', 'scribble']) window.api.on(k, (slot) => petWorld[k](slot));
 window.api.on('spawn', (info) => petWorld.spawn(info));
 window.api.on('wake', () => petWorld.wake());
 setInterval(() => { try { window.api.beat(petWorld.health()); } catch {} }, 3000);

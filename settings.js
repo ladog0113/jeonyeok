@@ -8,6 +8,7 @@
     ['capture', '캡쳐', '#5e5ce6', '◎'],
     ['frame', '포토이즘 프레임', '#30b0c7', '▦'],
     ['cards', '포토카드 도감', '#ff6fb5', '♥︎'],
+    ['diary', '캐릭터 일기', '#bf5af2', ''],
     ['update', '업데이트', '#34c759', '↻'],
   ];
   const SWATCH = { white: '#fffaf2', black: '#151517', pink: '#ffd3e3', mint: '#c9f1df', film: '#3a3a3a', army: '#5f6b3a', gold: '#e8c15a' };
@@ -57,6 +58,8 @@
       <div class="sec-h">효과</div><div class="group">
         ${row('효과음', sw('sound', c.sound !== false))}
         ${row('정각 알림', sw('chime', c.chime !== false))}
+        ${row('물 마시기 알림 <span class="val">오전 9시부터 오후 7시, 2시간마다</span>', sw('water', c.water !== false))}
+        ${row('스트레칭 알림 <span class="val">50분 동안 계속 쓰면</span>', sw('stretch', c.stretch !== false))}
         ${row('알림 배너', sw('banners', c.banners !== false))}
         ${row('알림 배너 빈도', seg('bannerFreq', [['low', '적게'], ['normal', '보통'], ['high', '자주']], c.bannerFreq || 'normal'))}
         ${row('알림 배너 지금 보기', btn('banner', '보기'))}
@@ -146,6 +149,11 @@
           ? `<div class="pc" data-big="${c.id}"><img src="${c.url}" alt=""><span class="rk ${c.best}">${c.best}</span>${c.n > 1 ? `<span class="cnt">×${c.n}</span>` : ''}</div>`
           : '<div class="pc locked"><span>?</span></div>')).join('')}</div>`;
     },
+    diary() {
+      const list = D.diaries || [];
+      return `<div class="group" style="margin-bottom:14px">${row('오늘 일기 화면에 띄우기 <span class="val">매일 오후 5시에 자동</span>', btn('action', '보기', 'diary'))}</div>` +
+        list.map((e) => `<div class="sec-h">${esc(e.title)}${e.draft ? ' <span class="val">작성 중</span>' : ''}</div><div class="group diary-e">${e.lines.map((l) => `<div class="row"><div class="lb">${esc(l)}</div></div>`).join('')}</div>`).join('');
+    },
     update() {
       const u = D.update;
       const st = u.busy ? '받는 중' : u.checking ? '확인 중' : u.latest ? `새 버전 ${u.latest}` : '최신 버전';
@@ -204,9 +212,10 @@
       $('lb').hidden = false;
     }));
   }
-  $('lb').onclick = () => ($('lb').hidden = true);
+  $('lb').onclick = (e) => { if (e.target === $('lb') || e.target === $('lb-img')) $('lb').hidden = true; };
+  $('lb-deco').onclick = () => { $('lb').hidden = true; window.openDeco($('lb-img').src, D && D.days); };
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { if (!$('lb').hidden) $('lb').hidden = true; else window.close(); }
+    if (e.key === 'Escape') { if (window.decoOpen && window.decoOpen()) return; if (!$('lb').hidden) $('lb').hidden = true; else window.close(); }
   });
 
   async function load() {

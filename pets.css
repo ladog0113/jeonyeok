@@ -273,3 +273,44 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 .pet.hiding .tag, .pet.hiding .bubble { opacity: 0 !important; }
 .pet.peek .swing { animation: peek .5s ease-in-out 2; }
 @keyframes peek { 50% { translate: 0 -6px; } }
+
+/* 화면 버튼 */
+.jy-btn { position: absolute; z-index: 60; pointer-events: auto; font: 700 13px/1 -apple-system, "Apple SD Gothic Neo", sans-serif; color: #fff; background: #007aff; border: 0; border-radius: 999px; padding: 8px 14px; box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer; animation: btnin .3s cubic-bezier(.3,1.6,.6,1) both; white-space: nowrap; }
+.jy-btn:hover { background: #1a86ff; }
+.jy-btn.out { animation: btnout .25s ease-in forwards; }
+@keyframes btnin { from { transform: scale(.4); opacity: 0; } }
+@keyframes btnout { to { transform: scale(.6); opacity: 0; } }
+
+/* 진급 */
+.promo-rk { position: absolute; z-index: 55; display: flex; flex-direction: column; justify-content: center; gap: 5px; padding: 7px 9px; box-sizing: border-box; background: #4b5a2e; border: 3px solid #2b2622; border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,.35); transform: scale(0) rotate(-30deg); transition: transform .45s cubic-bezier(.3,1.6,.6,1), left .9s cubic-bezier(.5,0,.3,1), top .9s cubic-bezier(.5,0,.3,1), opacity .4s; pointer-events: none; }
+.promo-rk b { display: block; height: 6px; background: #e9f06a; border-radius: 2px; box-shadow: 0 0 6px rgba(233,240,106,.8); }
+.promo-rk.show { transform: scale(1) rotate(0deg); }
+.promo-rk.fly { transform: scale(.75) rotate(360deg); }
+.promo-rk.pin { transform: scale(.42); transition: transform .25s cubic-bezier(.5,2,.5,1); }
+.promo-rk.out { opacity: 0; }
+.cf { position: absolute; width: 8px; height: 12px; border-radius: 2px; z-index: 54; pointer-events: none; animation: cf 2.4s cubic-bezier(.2,.6,.4,1) forwards; }
+@keyframes cf { 0% { transform: translate(0,0) rotate(0); opacity: 1; } 60% { opacity: 1; } 100% { transform: translate(var(--dx), calc(var(--dy) + 520px)) rotate(var(--r)); opacity: 0; } }
+
+/* 물컵 */
+.pet .cupprop { position: absolute; left: 66%; top: 44%; width: 22%; height: 26%; opacity: 0; transform: scale(.5); transition: opacity .2s, transform .3s cubic-bezier(.3,1.6,.6,1); transform-origin: 50% 90%; pointer-events: none; z-index: 3; }
+.pet .cupprop.on { opacity: 1; transform: none; }
+.pet .cupprop.on.drink { transform: translate(-60%, -70%) rotate(-62deg); transition: transform .35s ease-in-out; }
+
+/* 일기 */
+.diary { position: absolute; right: 24px; bottom: 150px; width: 290px; z-index: 50; padding: 16px 18px 14px; background: repeating-linear-gradient(#fffdf4 0 25px, #cfe3f7 25px 26px); background-position: 0 38px; border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.25); color: #2b2622; font: 600 14px/26px "Apple SD Gothic Neo", sans-serif; pointer-events: none; transform-origin: 100% 100%; animation: dyin .5s cubic-bezier(.3,1.4,.6,1) both; border-left: 5px solid #ff8fa3; }
+.diary .dy-h { font-weight: 800; font-size: 13px; color: #555; line-height: 22px; margin-bottom: 4px; }
+.diary p { margin: 0; }
+.diary .dy-by { text-align: right; font-size: 12px; color: #888; }
+.diary.out { animation: dyout .45s ease-in forwards; }
+@keyframes dyin { from { transform: rotate(8deg) scale(.6); opacity: 0; } }
+@keyframes dyout { to { transform: translateY(30px) rotate(-6deg); opacity: 0; } }
+
+/* 짬밥 받기 */
+.game-cover { position: fixed; inset: 0; z-index: 40; background: rgba(20, 24, 16, .12); cursor: none; }
+.game-hud { position: absolute; left: 50%; top: 28px; transform: translateX(-50%); z-index: 62; display: flex; align-items: center; gap: 16px; padding: 9px 12px 9px 18px; background: rgba(29, 28, 24, .92); color: #f4f1ea; border-radius: 14px; font: 600 14px/1 -apple-system, "Apple SD Gothic Neo", sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+.game-hud .gt { color: #e9f06a; font-weight: 800; }
+.game-hud b { font-size: 18px; color: #fff; }
+.game-hud .gq { pointer-events: auto; font: inherit; font-size: 12px; color: #fff; background: rgba(255,255,255,.16); border: 0; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+.game-hud.out { opacity: 0; transition: opacity .35s; }
+.gfood { position: absolute; left: 0; top: 0; z-index: 45; min-width: 56px; padding: 9px 10px; box-sizing: border-box; text-align: center; border: 2.5px solid #2b2622; border-radius: 14px; font: 800 15px/1 "Apple SD Gothic Neo", sans-serif; box-shadow: 0 4px 0 rgba(0,0,0,.25); pointer-events: none; }
+.gfood.bad { border-radius: 4px; }

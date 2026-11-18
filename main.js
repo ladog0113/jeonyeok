@@ -359,7 +359,7 @@ const OUTFIT_NAMES = {
 };
 const ACTIONS = [
   ['한마디 해봐', 'poke'], ['화면 깨기', 'smash'], ['빙글빙글', 'spin'], ['분신술', 'clone'], ['발가락 따봉', 'toe'],
-  ['손가락 별', 'star'], ['그립감', 'grip'], ['공중제비', 'flip'], ['낙서하기', 'scribble'], ['사인하기', 'sign'], ['붓글씨', 'brush'], ['앉아서 쉬기', 'rest'], ['기지개', 'stretch'], ['손 흔들기', 'wave'], ['클락션 빵빵', 'horn'], ['정각 알림', 'chime'], ['오늘의 아크릴', 'acryl'], ['밥 주기', 'feed'], ['쓰다듬기', 'petpet'], ['커서 훔치기', 'steal'], ['쓰레기 줍기', 'trash'], ['남은 것 영수증', 'receipt'], ['숨바꼭질', 'hide'], ['둘이 수다', 'talk'], ['둘이 하이파이브', 'hi5'], ['둘이 가위바위보', 'rps'], ['둘이 술래잡기', 'tag'], ['둘이 낮잠', 'nap'], ['빵 뜯기 (포토카드)', 'bread'], ['조나단 변신 (20초)', 'morph'], ['슬라임 터뜨리기', 'slime'], ['잠자기', 'sleep'],
+  ['손가락 별', 'star'], ['그립감', 'grip'], ['공중제비', 'flip'], ['낙서하기', 'scribble'], ['사인하기', 'sign'], ['붓글씨', 'brush'], ['앉아서 쉬기', 'rest'], ['기지개', 'stretch'], ['손 흔들기', 'wave'], ['클락션 빵빵', 'horn'], ['정각 알림', 'chime'], ['오늘의 아크릴', 'acryl'], ['밥 주기', 'feed'], ['쓰다듬기', 'petpet'], ['커서 훔치기', 'steal'], ['쓰레기 줍기', 'trash'], ['남은 것 영수증', 'receipt'], ['숨바꼭질', 'hide'], ['짬밥 받기', 'game'], ['진급 연출', 'promote'], ['물 마시기', 'water'], ['같이 스트레칭', 'stretchCall'], ['오늘 일기', 'diary'], ['둘이 수다', 'talk'], ['둘이 하이파이브', 'hi5'], ['둘이 가위바위보', 'rps'], ['둘이 술래잡기', 'tag'], ['둘이 낮잠', 'nap'], ['빵 뜯기 (포토카드)', 'bread'], ['조나단 변신 (20초)', 'morph'], ['슬라임 터뜨리기', 'slime'], ['잠자기', 'sleep'],
 ];
 const DANCE_ITEMS = [
   ['파라파라', 'dance'], ['호루라기 춤', 'whistle'], ['어깨 털기', 'shimmy'], ['하트 춤', 'heart'], ['파워 댄스', 'power'], ['BAD', 'pop'], ['응원 춤', 'cheer'],
@@ -717,6 +717,7 @@ function createTray() {
 }
 
 function sendToPet(channel) {
+  if (channel === 'diary') { sendDiary(); return; }
   const slot = Math.random() < 0.5 ? 'a' : 'b';
   const w = overlays.get(petHome[slot]);
   if (w && !w.isDestroyed()) w.webContents.send(channel, slot);
@@ -948,6 +949,7 @@ function sendPrimary(ch, data) {
   if (w) w.webContents.send(ch, data);
 }
 function sendAction(k) {
+  if (k === 'diary') { sendDiary(); return; }
   const slot = Math.random() < 0.5 ? 'a' : 'b';
   const w = overlays.get(petHome[slot]) || primaryOverlay();
   if (w && !w.isDestroyed()) w.webContents.send(k, slot);
@@ -968,6 +970,7 @@ ipcMain.handle('settings-data', () => ({
   queue: fourQueue.length,
   shortcutState,
   days: daysLeft(loadConfig()),
+  diaries: diaryList(),
   milestones: [800, 700, 600, 500, 400, 300, 200, 100, 50, 30, 10, 7, 3, 1, 0],
   sets: setProgress(loadConfig()),
   unlocked: unlocked(loadConfig()),
@@ -991,6 +994,23 @@ ipcMain.handle('settings-do', async (_e, cmd, arg) => {
     case 'resetQueue': fourQueue = []; updateTray(); buildMenu(); break;
     case 'login': app.setLoginItemSettings({ openAtLogin: !!arg }); buildMenu(); break;
     case 'diag': elClipboard.writeText(diagnostics()); return true;
+    case 'saveCard': {
+      const m2 = /^data:image\/png;base64,(.+)$/.exec(String(arg || ''));
+      if (!m2) return false;
+      const dir = path.join(app.getPath('downloads'), '전역까지 꾸민 카드');
+      fs.mkdirSync(dir, { recursive: true });
+      const n = new Date();
+      const f = path.join(dir, `카드 ${n.getFullYear()}${String(n.getMonth() + 1).padStart(2, '0')}${String(n.getDate()).padStart(2, '0')}-${String(n.getHours()).padStart(2, '0')}${String(n.getMinutes()).padStart(2, '0')}${String(n.getSeconds()).padStart(2, '0')}.png`);
+      fs.writeFileSync(f, Buffer.from(m2[1], 'base64'));
+      shell.showItemInFolder(f);
+      return f;
+    }
+    case 'copyCard': {
+      const img = nativeImage.createFromDataURL(String(arg || ''));
+      if (img.isEmpty()) return false;
+      elClipboard.writeImage(img);
+      return true;
+    }
     case 'logs': shell.openPath(app.getPath('userData')); break;
     case 'milestone': sendPrimary('milestone', arg); break;
     case 'banner': sendPrimary('banner', { kind: 'random' }); break;
@@ -1036,6 +1056,7 @@ ipcMain.handle('card-record', (_e, id, rare) => {
   cards[id] = { n: (prev ? prev.n : 0) + 1, best: prev && RANK[prev.best] >= RANK[rare] ? prev.best : rare, first: prev ? prev.first : Date.now() };
   const before = setProgress(cfg).filter((s) => s.done).map((s) => s.id);
   saveConfig({ ...cfg, cards });
+  diaryAdd('cards');
   const after = setProgress({ cards });
   const fresh = after.filter((s) => s.done && !before.includes(s.id));
   for (const s of fresh) setTimeout(() => sendPrimary('banner', { title: `${s.name} 세트 완성`, body: `보상: ${s.reward.label}. 설정에서 바로 쓸 수 있음` }), 3200);
@@ -1133,6 +1154,117 @@ function greetToday() {
   if (d === null) return;
   sendPrimary('acryl', weatherNow);
 }
+/* ---------- 진급, 일기, 물, 스트레칭 ---------- */
+const RANK_NAMES = ['이병', '일병', '상병', '병장'];
+function rankOfDays(d) { return d > 480 ? 0 : d > 300 ? 1 : d > 120 ? 2 : 3; }
+function checkPromotion() {
+  const cfg = loadConfig() || {};
+  if (cfg.enabled === false || !started) return;
+  const d = daysLeft(cfg);
+  if (d === null) return;
+  const rk = rankOfDays(d);
+  const key = `${cfg.discharge}:${rk}`;
+  if (cfg.rankSeen === key) return;
+  const prev = cfg.rankSeen && cfg.rankSeen.startsWith(cfg.discharge + ':') ? Number(cfg.rankSeen.split(':')[1]) : null;
+  saveConfig({ ...cfg, rankSeen: key });
+  if (prev !== null && rk > prev) {
+    sendPrimary('promote', rk);
+    diaryAdd('promote');
+  }
+}
+function diaryAdd(k, n = 1) {
+  const cfg = loadConfig() || {};
+  const day = todayKey();
+  const diary = { ...(cfg.diary || {}) };
+  diary[day] = { ...(diary[day] || {}), [k]: ((diary[day] || {})[k] || 0) + n };
+  const keys = Object.keys(diary).sort((a, b) => new Date(a) - new Date(b));
+  while (keys.length > 90) delete diary[keys.shift()];
+  saveConfig({ ...cfg, diary });
+}
+function diaryList() {
+  const cfg = loadConfig() || {};
+  const saved = cfg.diaryText || {};
+  const days = new Set([...Object.keys(saved), ...Object.keys(cfg.diary || {}), todayKey()]);
+  return [...days].sort((a, b) => new Date(b) - new Date(a)).map((d) => saved[d] || { ...diaryEntry(d), draft: d === todayKey() });
+}
+ipcMain.on('diary-add', (_e, k, n) => {
+  if (typeof k !== 'string' || k.length > 20) return;
+  if (k === 'gameScore') {
+    const cfg = loadConfig() || {};
+    const day = todayKey();
+    const cur = ((cfg.diary || {})[day] || {}).gameBest || 0;
+    if (Number(n) > cur) diaryAdd('gameBest', Number(n) - cur);
+    return;
+  }
+  diaryAdd(k, Number(n) || 1);
+});
+const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+const WX_WORD = { clear: '맑음', cloud: '흐림', rain: '비', snow: '눈', thunder: '천둥', fog: '안개' };
+function diaryEntry(day, slotName) {
+  const cfg = loadConfig() || {};
+  const c = (cfg.diary || {})[day] || {};
+  const [y, mo, dd] = day.split('-').map(Number);
+  const dt = new Date(y, mo - 1, dd);
+  const wx = weatherNow && day === todayKey() ? ` ${WX_WORD[weatherNow.kind] || ''}` : '';
+  const title = `${mo}월 ${dd}일 ${WEEK[dt.getDay()]}요일${wx}`;
+  const ev = [];
+  if (c.promote) ev.push([9, `오늘 ${RANK_NAMES[rankOfDays(daysLeft(cfg) ?? 999)]}으로 진급했다. 계급장이 무겁다.`]);
+  if (c.angry) ev.push([8, c.angry > 1 ? `오늘 ${c.angry}번 화났다. 누가 자꾸 눌렀다.` : '오늘 한 번 화났다. 열 번 누른 사람 기억함.']);
+  if (c.hideFound) ev.push([7, `숨바꼭질에서 ${c.hideFound}번 들켰다. 다음엔 더 잘 숨는다.`]);
+  if (c.hideMiss && !c.hideFound) ev.push([6, '숨바꼭질 했는데 아무도 못 찾았다. 좀 서운하다.']);
+  if (c.game) ev.push([6, c.gameBest >= 20 ? `짬밥 받기에서 ${c.gameBest}점 받았다. 오늘 컨디션 최고.` : `짬밥 받기 ${c.game}판 했다. 최고 ${c.gameBest || 0}점.`]);
+  if (c.cards) ev.push([5, `포토카드 ${c.cards}장 뽑았다.`]);
+  if (c.fed) ev.push([4, c.fed >= 3 ? `밥을 ${c.fed}번이나 먹었다. 배부르다.` : `밥은 ${c.fed}번 먹었다.`]);
+  else ev.push([3, '오늘 밥을 못 먹었다. 서럽다.']);
+  if (c.water) ev.push([4, `물은 ${c.water}번 같이 마셨다.`]);
+  if (c.stretch) ev.push([4, `기지개를 ${c.stretch}번 같이 켰다. 허리가 조금 펴졌다.`]);
+  if (c.talks) ev.push([3, `둘이 ${c.talks}번 수다 떨었다.`]);
+  if (c.petted) ev.push([3, `쓰다듬어 준 게 ${c.petted}번. 기분 좋았다.`]);
+  if (c.chime) ev.push([2, `정각마다 시계 들고 ${c.chime}번 외쳤다. 목 아프다.`]);
+  ev.sort((a, b) => b[0] - a[0]);
+  const d = daysLeft(cfg);
+  const close = d > 0 ? `전역까지 ${d}일. 내일도 버틴다.` : d === 0 ? '오늘 전역했다.' : `전역한 지 ${-d}일.`;
+  const lines = [...ev.slice(0, 2).map((e) => e[1]), close];
+  return { day, title, lines, by: slotName || null };
+}
+function sendDiary() {
+  const cfg = loadConfig() || {};
+  const day = todayKey();
+  const e = diaryEntry(day);
+  const texts = { ...(cfg.diaryText || {}), [day]: e };
+  const keys = Object.keys(texts).sort((a, b) => new Date(a) - new Date(b));
+  while (keys.length > 90) delete texts[keys.shift()];
+  saveConfig({ ...(loadConfig() || {}), diaryText: texts });
+  sendPrimary('diary', e);
+}
+let activeSec = 0;
+function careTick() {
+  const cfg = loadConfig() || {};
+  if (!started || cfg.enabled === false) return;
+  const n = new Date();
+  const h = n.getHours();
+  let idle = 0;
+  try { idle = powerMonitor.getSystemIdleTime(); } catch {}
+  if (idle < 120) activeSec += 30;
+  else if (idle > 300) activeSec = 0;
+  if (cfg.water !== false && h >= 9 && h < 19 && idle < 120) {
+    const last = cfg.lastWater || 0;
+    if (Date.now() - last >= 2 * 3600000) {
+      saveConfig({ ...cfg, lastWater: Date.now() });
+      if (last) sendPrimary('water');
+    }
+  }
+  if (cfg.stretch !== false && h >= 8 && h < 23 && activeSec >= 50 * 60) {
+    activeSec = 0;
+    sendPrimary('stretchCall');
+  }
+  const day = todayKey();
+  if (h >= 17 && (loadConfig() || {}).diaryShown !== day) {
+    saveConfig({ ...(loadConfig() || {}), diaryShown: day });
+    setTimeout(sendDiary, n.getDay() >= 1 && n.getDay() <= 5 && h === 17 && n.getMinutes() < 2 ? 25000 : 3000);
+  }
+}
+
 function lifeTick() {
   const cfg = loadConfig() || {};
   if (!started || cfg.enabled === false) return;
@@ -1193,7 +1325,10 @@ async function runSelftest() {
     for (const w of overlays.values()) w.webContents.on('console-message', (_e, level, msg) => { if (level >= 3) res.errors.push('overlay console: ' + msg); });
     await wait(2500);
     await cap(ov, 'overlay');
-    for (const [k, t] of [['bread', 3200], ['chime', 1300], ['horn', 2400], ['morph', 1800], ['feed', 3000], ['acryl', 1500], ['hi5', 5000], ['talk', 4500], ['hide', 3500], ['receipt', 1600]]) { ov.webContents.send(k, 'a'); await wait(t); await cap(ov, 'act-' + k); }
+    for (const [k, t] of [['bread', 3200], ['chime', 1300], ['horn', 2400], ['morph', 1800], ['feed', 3000], ['acryl', 1500], ['hi5', 5000], ['talk', 4500], ['hide', 3500], ['promote', 4200], ['water', 1500], ['stretchCall', 1500], ['game', 6000], ['receipt', 1600]]) { ov.webContents.send(k, 'a'); await wait(t); await cap(ov, 'act-' + k); }
+    sendDiary();
+    await wait(1500);
+    await cap(ov, 'act-diary');
     // 잠금 해제 복구
     wakeAll('selftest');
     await wait(4000);
@@ -1231,7 +1366,22 @@ async function runSelftest() {
     res.checks.frames = themes.length + 1;
     openSettings('general');
     await wait(2500);
-    for (const tab of ['general', 'character', 'frame', 'cards', 'update']) { settingsWin.webContents.send('settings-tab', tab); await wait(900); await cap(settingsWin, 'settings-' + tab); }
+    for (const tab of ['general', 'character', 'frame', 'cards', 'diary', 'update']) { settingsWin.webContents.send('settings-tab', tab); await wait(900); await cap(settingsWin, 'settings-' + tab); }
+    settingsWin.webContents.send('settings-tab', 'cards');
+    await wait(900);
+    res.checks.deco = await settingsWin.webContents.executeJavaScript(`(async () => {
+      const im = document.querySelector('.pc img');
+      if (!im) return 'no card';
+      window.openDeco(im.src, 196);
+      await new Promise((r) => setTimeout(r, 400));
+      for (const k of ['heart', 'crown', 'stamp', 'tape']) document.querySelector('[data-st="' + k + '"]').click();
+      document.querySelector('#d-text').value = '전역 축하';
+      document.querySelector('#d-add').click();
+      return document.querySelector('#d-cv').toDataURL().length > 1000;
+    })()`).catch((e) => 'err ' + e.message);
+    await wait(500);
+    await cap(settingsWin, 'settings-deco');
+    await settingsWin.webContents.executeJavaScript('window.decoOpen && window.decoOpen()').catch(() => {});
     openChangelog();
     await wait(1800);
     await cap(changelogWin, 'changelog');
@@ -1281,6 +1431,9 @@ app.whenReady().then(() => {
   setTimeout(() => { greetToday(); checkMilestone(); }, 7000);
   setInterval(checkMilestone, 30 * 60000);
   setInterval(lifeTick, 30000);
+  setInterval(careTick, 30000);
+  setInterval(checkPromotion, 10 * 60000);
+  setTimeout(checkPromotion, 12000);
   setTimeout(fetchWeather, 3000);
   setInterval(fetchWeather, 30 * 60000);
   setTimeout(lifeTick, 9000);
