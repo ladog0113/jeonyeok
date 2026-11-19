@@ -1,4 +1,4 @@
-html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none; font-family: -apple-system, "Apple SD Gothic Neo", sans-serif; }
+html, body { margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none; font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
 #cracks, #stage { position: fixed; inset: 0; }
 #cracks, #stage { pointer-events: none; }
 .crack { position: absolute; pointer-events: none; transition: opacity 1.2s; }
@@ -29,13 +29,13 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 .pet.clone { pointer-events: none; opacity: .92; }
 .spark { position: absolute; width: 7px; height: 7px; margin: -3px 0 0 -3px; border-radius: 50%; background: #fff7b8; box-shadow: 0 0 8px 2px rgba(255, 226, 110, .85); pointer-events: none; animation: spark .9s ease-out forwards; }
 @keyframes spark { from { transform: scale(1); opacity: 1; } to { transform: translateY(14px) scale(.2); opacity: 0; } }
-.scribble { font: 900 40px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; fill: rgba(214, 58, 44, .9); stroke: #fff; stroke-width: 2; paint-order: stroke; stroke-dasharray: 900; stroke-dashoffset: 900; animation: scribble 1.4s ease-out forwards; transition: opacity 1.4s; }
+.scribble { font: 900 40px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; fill: rgba(214, 58, 44, .9); stroke: #fff; stroke-width: 2; paint-order: stroke; stroke-dasharray: 900; stroke-dashoffset: 900; animation: scribble 1.4s ease-out forwards; transition: opacity 1.4s; }
 @keyframes scribble { from { stroke-dashoffset: 900; fill-opacity: 0; } 60% { fill-opacity: 0; } to { stroke-dashoffset: 0; fill-opacity: 1; } }
 .fstar { position: absolute; margin: -15px 0 0 -15px; pointer-events: none; animation: fstar 1.7s ease-out forwards; }
 @keyframes fstar { 0% { transform: scale(0) rotate(-40deg); opacity: 1; } 25% { transform: scale(1.35) rotate(10deg); } 40% { transform: scale(1) rotate(0); } 80% { opacity: 1; } 100% { transform: translateY(-16px) scale(.9); opacity: 0; } }
 .pet { --neon: #ff3df2; }
 .pet.neon .sprite { filter: drop-shadow(0 0 3px var(--neon)) drop-shadow(0 0 9px var(--neon)) drop-shadow(0 0 18px var(--neon)); transition: filter .2s; }
-.blast { position: absolute; transform: translate(-50%, -50%) rotate(var(--r)); font: 900 1em/1 "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; letter-spacing: -.02em; white-space: nowrap; color: #ffe14a; -webkit-text-stroke: .05em #1d1c18; paint-order: stroke fill; text-shadow: .04em .05em 0 #d9473a; pointer-events: none; animation: blastfade 1.3s ease-out forwards; }
+.blast { position: absolute; transform: translate(-50%, -50%) rotate(var(--r)); font: 900 1em/1 "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; letter-spacing: -.02em; white-space: nowrap; color: #ffe14a; -webkit-text-stroke: .05em #1d1c18; paint-order: stroke fill; text-shadow: .04em .05em 0 #d9473a; pointer-events: none; animation: blastfade 1.3s ease-out forwards; }
 .blast span { display: inline-block; animation: blast .5s cubic-bezier(.2,1.6,.4,1) both; }
 @keyframes blast { from { transform: scale(.2) translateY(30%); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes blastfade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
@@ -56,18 +56,18 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 #frame .fb-left { top: 44px; bottom: 64px; left: 0; width: 18px; }
 #frame .fb-right { top: 44px; bottom: 64px; right: 0; width: 18px; }
 #frame.fs-film .fb-top, #frame.fs-film .fb-bottom { background: repeating-linear-gradient(90deg, #111 0 14px, #e9e4d6 14px 26px, #111 26px 40px) top / 100% 8px no-repeat, repeating-linear-gradient(90deg, #111 0 14px, #e9e4d6 14px 26px, #111 26px 40px) bottom / 100% 8px no-repeat, #111; }
-#frame .fb-title { font: 800 20px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: var(--fb-ink); letter-spacing: .08em; }
+#frame .fb-title { font: 800 20px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; color: var(--fb-ink); letter-spacing: .08em; }
 #frame .fb-deco { color: var(--fb-acc); font-size: 18px; }
 #frame .fb-deco::before { content: "★"; }
 #frame.fs-pink .fb-deco::before { content: "♥ ♥"; }
 #frame.fs-film .fb-deco::before { content: "●"; }
 #frame.fs-army .fb-deco::before { content: "▲"; }
-#frame .fb-dday { font: 900 30px "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: var(--fb-ink); }
+#frame .fb-dday { font: 900 30px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; color: var(--fb-ink); }
 #frame.fs-army .fb-dday { background: #c9ced3; color: #2b2622; padding: 2px 14px; border-radius: 10px 10px 18px 18px; border: 2px solid #2b2622; font-size: 24px; }
 #frame .fb-date { font: 700 15px ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; color: var(--fb-ink); opacity: .7; }
 #frame:not(.fs-custom) { box-shadow: inset 0 0 0 0 transparent; }
 #frame:not(.fs-custom)::after { content: ""; position: absolute; top: 44px; bottom: 64px; left: 18px; right: 18px; border: 2px solid var(--fb-ink); border-radius: 4px; opacity: .55; }
-.zzz { position: absolute; transform: translate(-50%, -50%); font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; font-weight: 900; line-height: 1; white-space: nowrap; color: #b9d8ff; -webkit-text-stroke: .04em #1d1c18; paint-order: stroke fill; pointer-events: none; transition: opacity .5s; }
+.zzz { position: absolute; transform: translate(-50%, -50%); font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; font-weight: 900; line-height: 1; white-space: nowrap; color: #b9d8ff; -webkit-text-stroke: .04em #1d1c18; paint-order: stroke fill; pointer-events: none; transition: opacity .5s; }
 .zzz span { display: inline-block; animation: zfloat 2.4s ease-in-out infinite; }
 .zzz.out { opacity: 0; }
 @keyframes zfloat { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-.12em) rotate(4deg); } }
@@ -106,7 +106,7 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 @keyframes poof { from { transform: translate(0, 0) scale(.6); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(1.8); opacity: 0; } }
 .pet .bread { position: absolute; left: 50%; top: 52%; width: 62%; height: 30%; transform: translateX(-50%) scale(.5); opacity: 0; transition: opacity .2s, transform .25s; pointer-events: none; }
 .pet .bread.on { opacity: 1; transform: translateX(-50%) scale(1); }
-.pet .bread .bh { position: absolute; top: 0; width: 50%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #ffde59, #ff9f43); border: 2px solid #2b2622; font: 900 11px/1 "Apple SD Gothic Neo", sans-serif; color: #c81d3a; -webkit-text-stroke: .4px #fff; transition: transform .45s cubic-bezier(.3,1.4,.5,1), opacity .45s; }
+.pet .bread .bh { position: absolute; top: 0; width: 50%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #ffde59, #ff9f43); border: 2px solid #2b2622; font: 900 11px/1 "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; color: #c81d3a; -webkit-text-stroke: .4px #fff; transition: transform .45s cubic-bezier(.3,1.4,.5,1), opacity .45s; }
 .pet .bread .bh.l { left: 0; border-radius: 6px 0 0 6px; border-right: 1px dashed #2b2622; }
 .pet .bread .bh.r { right: 0; border-radius: 0 6px 6px 0; border-left: none; }
 .pet .bread .bun { position: absolute; left: 22%; top: 18%; width: 56%; height: 64%; border-radius: 45%; background: radial-gradient(circle at 40% 35%, #f7d29a, #c98a3c); border: 2px solid #6b4422; opacity: 0; transition: opacity .3s; z-index: -1; }
@@ -121,7 +121,7 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 @keyframes cardflip { from { transform: rotateY(0deg); } to { transform: rotateY(540deg); } }
 .pcard .face { position: absolute; inset: 0; border-radius: 4%; overflow: hidden; backface-visibility: hidden; -webkit-backface-visibility: hidden; border: 3px solid #fff; box-shadow: 0 18px 40px rgba(0,0,0,.35); }
 .pcard .back { background: repeating-linear-gradient(45deg, #ff8fc2 0 14px, #ffb3d6 14px 28px); display: flex; align-items: center; justify-content: center; }
-.pcard .back-in { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14% 8%; border: 3px solid #fff; border-radius: 10px; background: rgba(255,255,255,.25); color: #fff; font: 900 2.2em/1 "Apple SD Gothic Neo", sans-serif; -webkit-text-stroke: 1px #c81d6a; }
+.pcard .back-in { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14% 8%; border: 3px solid #fff; border-radius: 10px; background: rgba(255,255,255,.25); color: #fff; font: 900 2.2em/1 "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; -webkit-text-stroke: 1px #c81d6a; }
 .pcard .back-in span { font-size: .38em; letter-spacing: .2em; -webkit-text-stroke: 0; }
 .pcard .front { transform: rotateY(180deg); background: #fff; }
 .pcard .front img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -130,10 +130,10 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 .pcard.rare-SR .front::after, .pcard.rare-SSR .front::after { content: ""; position: absolute; inset: 0; background: linear-gradient(125deg, rgba(255,0,150,.22), rgba(0,200,255,.22), rgba(255,255,0,.22), rgba(150,0,255,.22)); background-size: 300% 300%; mix-blend-mode: color-dodge; animation: holo 2.5s linear infinite; }
 .pcard.rare-SSR .face { border-color: #ffd23f; box-shadow: 0 0 30px #ffd23f, 0 18px 40px rgba(0,0,0,.35); }
 @keyframes holo { from { background-position: 0% 0%; } to { background-position: 100% 100%; } }
-.pcard .tagline { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: linear-gradient(transparent, rgba(0,0,0,.55)); color: #fff; font: 800 14px/1 "Apple SD Gothic Neo", sans-serif; }
+.pcard .tagline { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: linear-gradient(transparent, rgba(0,0,0,.55)); color: #fff; font: 800 14px/1 "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
 .pcard .rk { padding: 3px 8px; border-radius: 99px; background: #fff; color: #c81d6a; }
 .pcard.rare-SSR .rk { background: #ffd23f; color: #6b3b00; }
-.pcount { position: absolute; left: 50%; bottom: -34px; transform: translateX(-50%); padding: 5px 12px; border-radius: 99px; background: #2b2622; color: #fff; font: 800 13px/1 "Apple SD Gothic Neo", sans-serif; white-space: nowrap; }
+.pcount { position: absolute; left: 50%; bottom: -34px; transform: translateX(-50%); padding: 5px 12px; border-radius: 99px; background: #2b2622; color: #fff; font: 800 13px/1 "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; white-space: nowrap; }
 /* blast styles */
 .blast.v-wave span { animation: blast .5s cubic-bezier(.2,1.6,.4,1) both, bob .42s ease-in-out infinite alternate; animation-delay: var(--wd, 0s), calc(var(--wd, 0s) + .4s); }
 @keyframes bob { from { translate: 0 0; } to { translate: 0 -.16em; } }
@@ -156,11 +156,11 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 
 /* mac-style notification banners */
 #mnotes { position: fixed; top: 34px; right: 14px; width: 356px; display: flex; flex-direction: column; gap: 8px; z-index: 40; pointer-events: none; }
-.mnote { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 18px; background: rgba(246, 246, 246, .82); -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8); box-shadow: 0 0 0 .5px rgba(0,0,0,.12), 0 8px 26px rgba(0,0,0,.18); color: #1d1d1f; font: 13px/1.32 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; transform: translateX(120%); opacity: 0; transition: transform .45s cubic-bezier(.2,1.1,.3,1), opacity .3s; word-break: keep-all; }
+.mnote { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 18px; background: rgba(246, 246, 246, .82); -webkit-backdrop-filter: blur(30px) saturate(1.8); backdrop-filter: blur(30px) saturate(1.8); box-shadow: 0 0 0 .5px rgba(0,0,0,.12), 0 8px 26px rgba(0,0,0,.18); color: #1d1d1f; font: 13px/1.32 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; transform: translateX(120%); opacity: 0; transition: transform .45s cubic-bezier(.2,1.1,.3,1), opacity .3s; word-break: keep-all; }
 .mnote.in { transform: none; opacity: 1; }
 .mnote.out { transform: translateX(120%); opacity: 0; transition: transform .45s ease-in, opacity .4s; }
 .mn-ic { flex: none; width: 36px; height: 36px; border-radius: 9px; background: linear-gradient(160deg, #8fa64a, #4d5d23); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 .5px rgba(255,255,255,.25); }
-.mn-ic span { color: #fff; font: 800 11px/1 -apple-system, "Apple SD Gothic Neo", sans-serif; letter-spacing: -.03em; }
+.mn-ic span { color: #fff; font: 800 11px/1 -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; letter-spacing: -.03em; }
 .mn-tx { flex: 1; min-width: 0; }
 .mn-hd { display: flex; justify-content: space-between; font-size: 12px; }
 .mn-hd b { font-weight: 600; }
@@ -191,12 +191,12 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 @keyframes reel { from { transform: translateY(0); } to { transform: translateY(calc(var(--n) * -22vh)); } }
 .ms-root.landed .ms-odo { animation: land .5s ease-out both; }
 @keyframes land { 0% { transform: scale(1); } 30% { transform: scale(1.08); } 100% { transform: scale(1); } }
-.ms-ribbon { position: relative; padding: 1.1vh 5vh; background: linear-gradient(90deg, #b3121f, #e8323f 50%, #b3121f); color: #fff6dc; font: 800 3.4vh/1.2 -apple-system, "Apple SD Gothic Neo", sans-serif; letter-spacing: .04em; box-shadow: 0 .6vh 0 #6e0a12, 0 1.2vh 3vh rgba(0,0,0,.4); transform: scaleX(0); animation: ribbon .6s 2.2s cubic-bezier(.3,1.5,.5,1) both; }
+.ms-ribbon { position: relative; padding: 1.1vh 5vh; background: linear-gradient(90deg, #b3121f, #e8323f 50%, #b3121f); color: #fff6dc; font: 800 3.4vh/1.2 -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; letter-spacing: .04em; box-shadow: 0 .6vh 0 #6e0a12, 0 1.2vh 3vh rgba(0,0,0,.4); transform: scaleX(0); animation: ribbon .6s 2.2s cubic-bezier(.3,1.5,.5,1) both; }
 .ms-ribbon::before, .ms-ribbon::after { content: ""; position: absolute; top: .9vh; width: 3vh; height: 100%; background: #8e0d17; z-index: -1; }
 .ms-ribbon::before { left: -2.2vh; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 40% 50%); }
 .ms-ribbon::after { right: -2.2vh; clip-path: polygon(0 0, 100% 0, 60% 50%, 100% 100%, 0 100%); }
 @keyframes ribbon { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-.ms-sub { color: #fff; font: 600 2.2vh/1.3 -apple-system, "Apple SD Gothic Neo", sans-serif; text-shadow: 0 .2vh 1vh rgba(0,0,0,.6); opacity: 0; animation: msup .6s 2.6s ease-out both; }
+.ms-sub { color: #fff; font: 600 2.2vh/1.3 -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; text-shadow: 0 .2vh 1vh rgba(0,0,0,.6); opacity: 0; animation: msup .6s 2.6s ease-out both; }
 @keyframes msup { from { opacity: 0; transform: translateY(1.5vh); } to { opacity: 1; transform: none; } }
 .ms-box::after { content: ""; position: absolute; left: -20%; top: 18%; width: 30%; height: 40%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); transform: skewX(-20deg); mix-blend-mode: overlay; animation: sweep 1.2s 2.4s ease-in-out both; opacity: 0; }
 @keyframes sweep { 0% { left: -20%; opacity: 0; } 20% { opacity: 1; } 100% { left: 110%; opacity: 0; } }
@@ -209,16 +209,16 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 @keyframes rcprint { from { clip-path: inset(0 0 100% 0); transform: translateY(-14px); } to { clip-path: inset(0 0 -10px 0); transform: none; } }
 @keyframes rcout { to { transform: translateY(30px) rotate(6deg); opacity: 0; } }
 .rc-in { background: #fffdf6; color: #222; padding: 14px 14px 18px; font: 600 12px/1.55 ui-monospace, Menlo, monospace; -webkit-mask: radial-gradient(circle 5px at 50% 100%, transparent 98%, #000) 0 0 / 12px 100% repeat-x; mask: radial-gradient(circle 5px at 50% 100%, transparent 98%, #000) 0 0 / 12px 100% repeat-x; padding-bottom: 22px; }
-.rc-h { text-align: center; font: 800 15px/1.2 "Apple SD Gothic Neo", sans-serif; letter-spacing: .1em; }
+.rc-h { text-align: center; font: 800 15px/1.2 "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; letter-spacing: .1em; }
 .rc-s { text-align: center; color: #777; font-size: 11px; }
 .rc-line { border-top: 1.5px dashed #999; margin: 8px 0; }
 .rc-r { display: flex; justify-content: space-between; gap: 8px; }
-.rc-r span { font-family: "Apple SD Gothic Neo", sans-serif; }
+.rc-r span { font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; }
 .rc-t { font-size: 14px; }
 .rc-bar { height: 30px; margin: 10px 4px 6px; background: repeating-linear-gradient(90deg, #222 0 2px, transparent 2px 4px, #222 4px 5px, transparent 5px 8px, #222 8px 11px, transparent 11px 12px); }
 
 /* 오늘의 아크릴 */
-.acryl { position: fixed; top: 34px; right: 14px; width: 356px; z-index: 41; pointer-events: none; border-radius: 22px; overflow: hidden; color: #fff; font: 13px/1.35 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; word-break: keep-all; background: linear-gradient(170deg, #4b8ff0, #2a5fc9 55%, #2449a8); box-shadow: 0 0 0 .5px rgba(0,0,0,.2), 0 14px 40px rgba(0,0,0,.3); transform: translateX(120%); transition: transform .6s cubic-bezier(.2,1.1,.3,1), opacity .4s; }
+.acryl { position: fixed; top: 34px; right: 14px; width: 356px; z-index: 41; pointer-events: none; border-radius: 22px; overflow: hidden; color: #fff; font: 13px/1.35 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; word-break: keep-all; background: linear-gradient(170deg, #4b8ff0, #2a5fc9 55%, #2449a8); box-shadow: 0 0 0 .5px rgba(0,0,0,.2), 0 14px 40px rgba(0,0,0,.3); transform: translateX(120%); transition: transform .6s cubic-bezier(.2,1.1,.3,1), opacity .4s; }
 .acryl.in { transform: none; }
 .acryl.out { transform: translateX(120%); opacity: 0; }
 .ac-top { padding: 14px 16px 0; }
@@ -275,7 +275,7 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 @keyframes peek { 50% { translate: 0 -6px; } }
 
 /* 화면 버튼 */
-.jy-btn { position: absolute; z-index: 60; pointer-events: auto; font: 700 13px/1 -apple-system, "Apple SD Gothic Neo", sans-serif; color: #fff; background: #007aff; border: 0; border-radius: 999px; padding: 8px 14px; box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer; animation: btnin .3s cubic-bezier(.3,1.6,.6,1) both; white-space: nowrap; }
+.jy-btn { position: absolute; z-index: 60; pointer-events: auto; font: 700 13px/1 -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; color: #fff; background: #007aff; border: 0; border-radius: 999px; padding: 8px 14px; box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer; animation: btnin .3s cubic-bezier(.3,1.6,.6,1) both; white-space: nowrap; }
 .jy-btn:hover { background: #1a86ff; }
 .jy-btn.out { animation: btnout .25s ease-in forwards; }
 @keyframes btnin { from { transform: scale(.4); opacity: 0; } }
@@ -297,7 +297,7 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 .pet .cupprop.on.drink { transform: translate(-60%, -70%) rotate(-62deg); transition: transform .35s ease-in-out; }
 
 /* 일기 */
-.diary { position: absolute; right: 24px; bottom: 150px; width: 290px; z-index: 50; padding: 16px 18px 14px; background: repeating-linear-gradient(#fffdf4 0 25px, #cfe3f7 25px 26px); background-position: 0 38px; border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.25); color: #2b2622; font: 600 14px/26px "Apple SD Gothic Neo", sans-serif; pointer-events: none; transform-origin: 100% 100%; animation: dyin .5s cubic-bezier(.3,1.4,.6,1) both; border-left: 5px solid #ff8fa3; }
+.diary { position: absolute; right: 24px; bottom: 150px; width: 290px; z-index: 50; padding: 16px 18px 14px; background: repeating-linear-gradient(#fffdf4 0 25px, #cfe3f7 25px 26px); background-position: 0 38px; border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.25); color: #2b2622; font: 600 14px/26px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; pointer-events: none; transform-origin: 100% 100%; animation: dyin .5s cubic-bezier(.3,1.4,.6,1) both; border-left: 5px solid #ff8fa3; }
 .diary .dy-h { font-weight: 800; font-size: 13px; color: #555; line-height: 22px; margin-bottom: 4px; }
 .diary p { margin: 0; }
 .diary .dy-by { text-align: right; font-size: 12px; color: #888; }
@@ -307,10 +307,10 @@ html, body { margin: 0; width: 100%; height: 100%; background: transparent; over
 
 /* 짬밥 받기 */
 .game-cover { position: fixed; inset: 0; z-index: 40; background: rgba(20, 24, 16, .12); cursor: none; }
-.game-hud { position: absolute; left: 50%; top: 28px; transform: translateX(-50%); z-index: 62; display: flex; align-items: center; gap: 16px; padding: 9px 12px 9px 18px; background: rgba(29, 28, 24, .92); color: #f4f1ea; border-radius: 14px; font: 600 14px/1 -apple-system, "Apple SD Gothic Neo", sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+.game-hud { position: absolute; left: 50%; top: 28px; transform: translateX(-50%); z-index: 62; display: flex; align-items: center; gap: 16px; padding: 9px 12px 9px 18px; background: rgba(29, 28, 24, .92); color: #f4f1ea; border-radius: 14px; font: 600 14px/1 -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,.3); }
 .game-hud .gt { color: #e9f06a; font-weight: 800; }
 .game-hud b { font-size: 18px; color: #fff; }
 .game-hud .gq { pointer-events: auto; font: inherit; font-size: 12px; color: #fff; background: rgba(255,255,255,.16); border: 0; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
 .game-hud.out { opacity: 0; transition: opacity .35s; }
-.gfood { position: absolute; left: 0; top: 0; z-index: 45; min-width: 56px; padding: 9px 10px; box-sizing: border-box; text-align: center; border: 2.5px solid #2b2622; border-radius: 14px; font: 800 15px/1 "Apple SD Gothic Neo", sans-serif; box-shadow: 0 4px 0 rgba(0,0,0,.25); pointer-events: none; }
+.gfood { position: absolute; left: 0; top: 0; z-index: 45; min-width: 56px; padding: 9px 10px; box-sizing: border-box; text-align: center; border: 2.5px solid #2b2622; border-radius: 14px; font: 800 15px/1 "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; box-shadow: 0 4px 0 rgba(0,0,0,.25); pointer-events: none; }
 .gfood.bad { border-radius: 4px; }

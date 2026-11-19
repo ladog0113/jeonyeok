@@ -6,7 +6,7 @@ const path = require('path');
 
 const REPO = 'ladog0113/jeonyeok';
 const LIVE_ASSET = 'jeonyeok-live.zip';
-const FULL_ASSET = 'Jeonyeok-mac.zip';
+const FULL_ASSET = process.platform === 'darwin' ? 'Jeonyeok-mac.zip' : process.platform === 'win32' ? 'Jeonyeok-win.zip' : 'Jeonyeok-linux.zip';
 const VERSION = require('./package.json').version;
 
 let state = { checking: false, latest: null, live: null, full: null, busy: false, error: null };
@@ -49,7 +49,7 @@ async function check(manual) {
       state.full = find(FULL_ASSET) ? find(FULL_ASSET).browser_download_url : null;
       if (notified !== v) {
         notified = v;
-        notify(`새 버전 ${v}이 있습니다. 메뉴바 D-day 숫자 > 업데이트 설치`);
+        notify(`새 버전 ${v}이 있습니다. ${process.platform === 'darwin' ? '메뉴바 D-day 숫자' : '작업 표시줄 전역까지 아이콘'} > 업데이트 설치`);
       }
     } else {
       state.latest = null;
@@ -85,7 +85,8 @@ async function installLive() {
   await download(state.live, zip);
   fs.rmSync(tmp, { recursive: true, force: true });
   fs.mkdirSync(tmp, { recursive: true });
-  await run('/usr/bin/ditto', ['-xk', zip, tmp]);
+  if (process.platform === 'darwin') await run('/usr/bin/ditto', ['-xk', zip, tmp]);
+  else require('./unzip.js').unzip(zip, tmp);
   const pj = JSON.parse(fs.readFileSync(path.join(tmp, 'package.json'), 'utf8'));
   if (pj.version !== state.latest || !fs.existsSync(path.join(tmp, 'main.js'))) throw new Error('unexpected package ' + pj.version);
   fs.rmSync(old, { recursive: true, force: true });
@@ -126,7 +127,8 @@ async function install() {
   onChange();
   try {
     if (state.live) await installLive();
-    else await installFull();
+    else if (process.platform === 'darwin') await installFull();
+    else throw new Error('no live package');
   } catch (e) {
     state.busy = false;
     state.error = String(e.message || e);

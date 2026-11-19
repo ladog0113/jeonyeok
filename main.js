@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, dialog, protocol, globalShortcut, clipboard: elClipboard, shell, ShareMenu, powerMonitor } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, dialog, protocol, globalShortcut, clipboard: elClipboard, shell, ShareMenu, powerMonitor, desktopCapturer } = require('electron');
+const IS_MAC = process.platform === 'darwin';
 const updater = require('./updater');
 const { execFile, execFileSync } = require('child_process');
 const os = require('os');
@@ -48,11 +49,9 @@ function updateTray() {
   const cfg = loadConfig();
   const d = daysLeft(cfg);
   const off = (cfg && cfg.enabled === false ? ' (꺼짐)' : '') + fourLabel();
-  if (d === null) tray.setTitle('D-?');
-  else if (off) tray.setTitle((d > 0 ? `D-${d}` : d === 0 ? 'D-DAY' : `D+${-d}`) + off);
-  else if (d > 0) tray.setTitle(`D-${d}`);
-  else if (d === 0) tray.setTitle('D-DAY');
-  else tray.setTitle(`D+${-d}`);
+  const label = (d === null ? 'D-?' : d > 0 ? `D-${d}` : d === 0 ? 'D-DAY' : `D+${-d}`) + off;
+  if (process.platform === 'darwin') tray.setTitle(label);
+  else tray.setToolTip(`전역까지 ${label}`);
 }
 
 let changelogWin = null;
@@ -379,6 +378,11 @@ const FRAME_STYLES = { white: '흰색 기본', black: '블랙', pink: '핑크 �
 let shortcutState = null;
 
 function shotDir() {
+  if (!IS_MAC) {
+    const dir = path.join(app.getPath('pictures'), 'Screenshots');
+    try { fs.mkdirSync(dir, { recursive: true }); } catch {}
+    return dir;
+  }
   try {
     const out = execFileSync('defaults', ['read', 'com.apple.screencapture', 'location']).toString().trim().replace(/^~/, os.homedir());
     if (out && fs.existsSync(out)) return out;
@@ -396,6 +400,75 @@ function shotName() {
 let ownCapture = false;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const runCapture = (args) => new Promise((res) => execFile('/usr/sbin/screencapture', args, () => res()));
+
+/* ---------- Windows, Linux 캡쳐 ---------- */
+let selectJob = null;
+async function grabDisplay(display, exclude) {
+  const wins = exclude ? [...overlays.values()].filter((w) => !w.isDestroyed() && w.isVisible()) : [];
+  if (process.platform === 'linux') wins.forEach((w) => w.hide());
+  else wins.forEach((w) => w.setOpacity(0));
+  await sleep(wins.length ? 140 : 0);
+  const sf = display.scaleFactor || 1;
+  let sources = [];
+  try {
+    sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: Math.round(display.size.width * sf), height: Math.round(display.size.height * sf) } });
+  } finally {
+    if (process.platform === 'linux') wins.forEach((w) => { if (!w.isDestroyed()) w.showInactive(); });
+    else wins.forEach((w) => { if (!w.isDestroyed()) w.setOpacity(1); });
+  }
+  const idx = screen.getAllDisplays().findIndex((d) => d.id === display.id);
+  const src = sources.find((s) => s.display_id && s.display_id === String(display.id)) || sources[idx] || sources[0];
+  return src ? src.thumbnail : null;
+}
+function pickRegion(display, img) {
+  return new Promise((resolve) => {
+    const b = display.bounds;
+    const win = new BrowserWindow({
+      x: b.x, y: b.y, width: b.width, height: b.height, frame: false, resizable: false, movable: false,
+      skipTaskbar: true, alwaysOnTop: true, show: false, enableLargerThanScreen: true, backgroundColor: '#000000',
+      webPreferences: { preload: path.join(__dirname, 'preload.js') },
+    });
+    win.setAlwaysOnTop(true, 'screen-saver');
+    selectJob = { win, img: img.toDataURL(), resolve: (r) => { selectJob = null; if (!win.isDestroyed()) win.destroy(); resolve(r); } };
+    win.on('closed', () => { if (selectJob && selectJob.win === win) selectJob.resolve(null); });
+    win.loadFile(path.join(__dirname, 'select.html'));
+    win.once('ready-to-show', () => { win.setBounds(b); win.show(); win.focus(); });
+  });
+}
+ipcMain.handle('select-init', () => (selectJob ? { img: selectJob.img } : null));
+ipcMain.on('select-done', (_e, r) => { if (selectJob) selectJob.resolve(r); });
+
+// opts: { region, exclude, clip, rect }
+async function ownShot(opts) {
+  if (ownCapture || selectJob) return null;
+  ownCapture = true;
+  try {
+    const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+    const exclude = opts.exclude != null ? opts.exclude : captureMode === 'work';
+    const img = await grabDisplay(display, exclude);
+    if (!img || img.isEmpty()) return null;
+    let out = img;
+    let r = opts.rect || null;
+    if (opts.region && !r) {
+      r = await pickRegion(display, img);
+      if (!r) return null;
+      if (r.full) r = null;
+    }
+    if (r) {
+      const k = img.getSize().width / display.size.width;
+      out = img.crop({ x: Math.round(r.x * k), y: Math.round(r.y * k), width: Math.max(1, Math.round(r.width * k)), height: Math.max(1, Math.round(r.height * k)) });
+    }
+    captureAt = Date.now();
+    const file = path.join(shotDir(), shotName());
+    fs.writeFileSync(file, out.toPNG());
+    if (opts.clip !== false) elClipboard.writeImage(out);
+    if (captureMode === 'photo' && !opts.noFrame) setTimeout(() => frameShot(file), 300);
+    else if (!opts.quiet) sendPrimary('banner', { title: '스크린샷 저장', body: `${path.basename(file)}. 클립보드에도 복사됨` });
+    return file;
+  } finally {
+    setTimeout(() => { ownCapture = false; }, 300);
+  }
+}
 
 // 캐릭터를 아주 잠깐(약 0.2초) 숨긴 채로 조용히 다시 찍음
 async function blinkCapture(args) {
@@ -421,6 +494,7 @@ function deliver(tmpFiles, toClipboard) {
 
 // 업무 모드 캡쳐: 고르는 동안 캐릭터는 그대로 보이고, 저장되는 결과물에서만 빠짐
 async function hiddenCapture(args, toClipboard) {
+  if (!IS_MAC) return ownShot({ region: args.length > 0, exclude: true, clip: true });
   if (ownCapture) return;
   ownCapture = true;
   captureAt = Date.now();
@@ -616,6 +690,14 @@ function applyShortcuts() {
   watchShotDir(captureMode === 'photo');
   globalShortcut.unregisterAll();
   const cfg = loadConfig() || {};
+  if (!IS_MAC) {
+    let ok = 0;
+    for (const [acc, region] of [['Control+Shift+4', true], ['Control+Shift+3', false], ['PrintScreen', true]]) {
+      try { if (globalShortcut.register(acc, () => ownShot({ region }))) ok++; } catch {}
+    }
+    shortcutState = ok;
+    return;
+  }
   if (cfg.capture !== 'work' || cfg.enabled === false) { shortcutState = null; return; }
   const map = {
     'Command+Shift+3': [[], false],
@@ -699,7 +781,7 @@ function buildMenu() {
       ],
     },
     { label: '포토카드 도감', click: () => openSettings('cards') },
-    { label: '설정…', accelerator: 'Command+,', click: () => openSettings() },
+    { label: '설정…', accelerator: 'CmdOrCtrl+,', click: () => openSettings() },
     { type: 'separator' },
     ...updater.menuItems(),
     { label: '업데이트 내역', click: () => openChangelog() },
@@ -710,7 +792,11 @@ function buildMenu() {
 }
 
 function createTray() {
-  tray = new Tray(nativeImage.createEmpty());
+  if (process.platform === 'darwin') tray = new Tray(nativeImage.createEmpty());
+  else {
+    tray = new Tray(nativeImage.createFromPath(path.join(__dirname, 'frames', 'icon', 'tray.png')));
+    tray.on('click', () => tray.popUpContextMenu());
+  }
   buildMenu();
   updateTray();
   setInterval(updateTray, 60 * 1000);
@@ -1329,6 +1415,27 @@ async function runSelftest() {
     sendDiary();
     await wait(1500);
     await cap(ov, 'act-diary');
+    if (!IS_MAC) {
+      // 자체 캡쳐: 영역 고정
+      const f1 = await ownShot({ rect: { x: 100, y: 100, width: 300, height: 200 }, exclude: true, clip: false, quiet: true, noFrame: true }).catch((e) => 'err ' + e.message);
+      const ok1 = typeof f1 === 'string' && fs.existsSync(f1) && !nativeImage.createFromPath(f1).isEmpty();
+      if (ok1) fs.copyFileSync(f1, path.join(out, 'own-rect.png'));
+      // 영역 선택 화면
+      await wait(500);
+      const p2 = ownShot({ region: true, exclude: false, clip: false, quiet: true, noFrame: true });
+      for (let i = 0; i < 40 && !(selectJob && selectJob.win && !selectJob.win.webContents.isLoading()); i++) await wait(150);
+      let ok2 = false;
+      if (selectJob) {
+        await wait(600);
+        await cap(selectJob.win, 'own-select').catch(() => {});
+        await selectJob.win.webContents.executeJavaScript('window.api.selectDone({ x: 40, y: 40, width: 260, height: 160 })').catch(() => {});
+        const f2 = await p2;
+        ok2 = typeof f2 === 'string' && fs.existsSync(f2);
+        if (ok2) fs.copyFileSync(f2, path.join(out, 'own-region.png'));
+      }
+      res.checks.ownShot = ok1 && ok2;
+      if (!res.checks.ownShot) res.errors.push(`own capture: rect ${ok1}, region ${ok2}`);
+    }
     // 잠금 해제 복구
     wakeAll('selftest');
     await wait(4000);

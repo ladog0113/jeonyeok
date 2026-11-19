@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title></title>
+<style>
+html, body { margin: 0; height: 100%; overflow: hidden; cursor: crosshair; user-select: none; }
+body { background: #000 center / 100% 100% no-repeat; }
+#dim { position: fixed; inset: 0; background: rgba(0, 0, 0, .35); }
+#box { position: fixed; display: none; outline: 1.5px solid #fff; box-shadow: 0 0 0 99999px rgba(0, 0, 0, .35); background: center / var(--bw) var(--bh) no-repeat; }
+#box.on { display: block; }
+#size { position: fixed; display: none; padding: 3px 7px; border-radius: 5px; background: rgba(0, 0, 0, .75); color: #fff; font: 600 12px/1.2 -apple-system, "Malgun Gothic", "Noto Sans KR", sans-serif; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="dim"></div>
+<div id="box"></div>
+<div id="size"></div>
+<script>
+(async () => {
+  const d = await window.api.selectInit();
+  document.body.style.backgroundImage = `url(${d.img})`;
+  const box = document.getElementById('box');
+  const size = document.getElementById('size');
+  box.style.backgroundImage = `url(${d.img})`;
+  let st = null, cur = null;
+  const rect = () => {
+    const x = Math.min(st.x, cur.x), y = Math.min(st.y, cur.y);
+    return { x, y, width: Math.abs(cur.x - st.x), height: Math.abs(cur.y - st.y) };
+  };
+  const draw = () => {
+    const r = rect();
+    box.classList.add('on');
+    Object.assign(box.style, { left: r.x + 'px', top: r.y + 'px', width: r.width + 'px', height: r.height + 'px' });
+    box.style.setProperty('--bw', innerWidth + 'px');
+    box.style.setProperty('--bh', innerHeight + 'px');
+    box.style.backgroundPosition = `${-r.x}px ${-r.y}px`;
+    document.getElementById('dim').style.display = 'none';
+    size.style.display = 'block';
+    size.textContent = `${Math.round(r.width)} x ${Math.round(r.height)}`;
+    size.style.left = r.x + r.width + 8 + 'px';
+    size.style.top = r.y + r.height + 8 + 'px';
+  };
+  addEventListener('mousedown', (e) => { if (e.button !== 0) return; st = { x: e.clientX, y: e.clientY }; cur = st; });
+  addEventListener('mousemove', (e) => { if (!st) return; cur = { x: e.clientX, y: e.clientY }; draw(); });
+  addEventListener('mouseup', (e) => {
+    if (!st) return;
+    cur = { x: e.clientX, y: e.clientY };
+    const r = rect();
+    st = null;
+    window.api.selectDone(r.width < 4 || r.height < 4 ? { full: true } : r);
+  });
+  addEventListener('contextmenu', () => window.api.selectDone(null));
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') window.api.selectDone(null);
+    if (e.key === 'Enter') window.api.selectDone({ full: true });
+  });
+})();
+</script>
+</body>
+</html>

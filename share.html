@@ -8,7 +8,7 @@
 @media (prefers-color-scheme: dark) { :root { --label: #f5f5f7; --secondary: rgba(235, 235, 245, .6); --btn: rgba(255, 255, 255, .12); --sep: rgba(255, 255, 255, .12); --blue: #0a84ff; --bg: #1e1e1e; } }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { background: var(--bg); color: var(--label); font: 13px/1.35 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; display: flex; flex-direction: column; user-select: none; -webkit-user-select: none; -webkit-app-region: drag; }
+body { background: var(--bg); color: var(--label); font: 13px/1.35 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; display: flex; flex-direction: column; user-select: none; -webkit-user-select: none; -webkit-app-region: drag; }
 html.vibrant body { background: transparent; }
 .pic { flex: 1; min-height: 0; padding: 36px 16px 10px; display: flex; align-items: center; justify-content: center; }
 .pic img { max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.25); -webkit-app-region: no-drag; cursor: default; }
@@ -34,10 +34,16 @@ if (/vibrancy=1/.test(location.search)) document.documentElement.classList.add('
   if (!d) return;
   document.getElementById('img').src = d.url;
   document.getElementById('name').textContent = d.name;
-  const b = (id, cmd) => (document.getElementById(id).onclick = async (e) => {
+  const b = (id, cmd) => document.getElementById(id) && (document.getElementById(id).onclick = async (e) => {
     await window.api.shareDo(cmd);
     if (cmd === 'copy') { e.target.textContent = '복사됨'; setTimeout(() => (e.target.textContent = '복사'), 1500); }
   });
+  if (window.api.platform !== 'darwin') {
+    document.getElementById('share').remove();
+    document.querySelector('.acts').style.gridTemplateColumns = '1fr 1fr';
+    document.getElementById('finder').textContent = '폴더에서 보기';
+    document.getElementById('finder').classList.add('primary');
+  }
   b('copy', 'copy');
   b('finder', 'finder');
   b('share', 'share');

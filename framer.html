@@ -20,7 +20,7 @@ const STYLES = {
   army: { bg: '#5f6b3a', ink: '#f4f1ea', acc: '#e9f06a', deco: '▲' },
   gold: { bg: '#e8c15a', ink: '#3a2706', acc: '#fff3c0', deco: '★' },
 };
-const FONT = '"Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
+const FONT = '"Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif';
 
 function loadImg(url) {
   return new Promise((res, rej) => {
@@ -228,7 +228,7 @@ const THEMES = {
   holo: { w: 1200, h: 3600, cells: [[120, 260, 960, 620], [120, 960, 960, 620], [120, 1660, 960, 620], [120, 2360, 960, 620]], r: 150 },
 };
 const INK = '#1d1a18';
-const PEN = '"JY Pen", "Apple SD Gothic Neo", sans-serif';
+const PEN = '"JY Pen", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif';
 let rnd = 1;
 function rand() { rnd = (rnd * 16807) % 2147483647; return (rnd - 1) / 2147483646; }
 
@@ -1704,7 +1704,7 @@ function goldText(ctx, text, x, y, size, rot) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate((rot || 0) * Math.PI / 180);
-  ctx.font = `900 ${size}px "Apple SD Gothic Neo", "Noto Serif KR", serif`;
+  ctx.font = `900 ${size}px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Serif KR", serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.lineJoin = 'round';

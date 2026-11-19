@@ -52,7 +52,7 @@
     } else if (it.type === 'bubble' || it.type === 'text') {
       const t = it.text || '';
       const fs = Math.round(34 * it.s);
-      c.font = `800 ${fs}px -apple-system, "Apple SD Gothic Neo", sans-serif`;
+      c.font = `800 ${fs}px -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif`;
       c.textAlign = 'center';
       c.textBaseline = 'middle';
       const tw = Math.max(fs, c.measureText(t).width);
@@ -80,10 +80,10 @@
       c.beginPath(); c.arc(0, 0, r * 1.25, 0, 7); c.stroke();
       c.lineWidth = 2 * it.s;
       c.beginPath(); c.arc(0, 0, r * 1.05, 0, 7); c.stroke();
-      c.font = `900 ${Math.round(r * 0.62)}px -apple-system, "Apple SD Gothic Neo", sans-serif`;
+      c.font = `900 ${Math.round(r * 0.62)}px -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif`;
       c.textAlign = 'center'; c.textBaseline = 'middle';
       c.fillText(dday == null ? 'D-DAY' : dday > 0 ? `D-${dday}` : dday === 0 ? 'D-DAY' : `D+${-dday}`, 0, -r * 0.12);
-      c.font = `800 ${Math.round(r * 0.3)}px -apple-system, "Apple SD Gothic Neo", sans-serif`;
+      c.font = `800 ${Math.round(r * 0.3)}px -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif`;
       c.fillText('전역까지', 0, r * 0.5);
     } else if (it.type === 'tape') {
       c.globalAlpha = 0.78;

@@ -46,9 +46,17 @@ jobs:
         run: |
           npx @electron/packager . Jeonyeok --platform=darwin --arch=arm64 --out=build --overwrite \
             --app-bundle-id=com.dd.jeonyeok --app-version=${{ steps.v.outputs.version }} \
-            --ignore='^/\.github' --ignore='^/build' --ignore='^/install\.sh'
+            --ignore='^/\.github' --ignore='^/build' --ignore='^/install\.(sh|ps1)'
           cd build/Jeonyeok-darwin-arm64
           zip -qry ../../Jeonyeok-mac.zip Jeonyeok.app
+
+      - name: Build Linux app (x64)
+        if: steps.exists.outputs.skip == 'false'
+        run: |
+          npx @electron/packager . Jeonyeok --platform=linux --arch=x64 --out=build --overwrite \
+            --app-version=${{ steps.v.outputs.version }} \
+            --ignore='^/\.github' --ignore='^/build' --ignore='^/install\.(sh|ps1)'
+          cd build && mv Jeonyeok-linux-x64 Jeonyeok && zip -qry ../Jeonyeok-linux.zip Jeonyeok
 
       - name: Build live update package (app code only)
         if: steps.exists.outputs.skip == 'false'
@@ -65,7 +73,103 @@ jobs:
           name: dist
           path: |
             Jeonyeok-mac.zip
+            Jeonyeok-linux.zip
             jeonyeok-live.zip
+
+  win:
+    needs: build
+    if: needs.build.outputs.skip == 'false'
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build Windows app (x64)
+        run: |
+          npx @electron/packager . Jeonyeok --platform=win32 --arch=x64 --out=build --overwrite \
+            --app-version=${{ needs.build.outputs.version }} --icon=frames/icon/app.ico \
+            --win32metadata.ProductName=Jeonyeok --win32metadata.FileDescription=Jeonyeok \
+            --ignore='^/\.github' --ignore='^/build' --ignore='^/install\.(sh|ps1)'
+          mv build/Jeonyeok-win32-x64 build/Jeonyeok
+          pwsh -NoProfile -Command "Compress-Archive -Path build/Jeonyeok -DestinationPath Jeonyeok-win.zip -Force"
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Run app self test
+        run: |
+          UD="$RUNNER_TEMP/ud"
+          mkdir -p "$UD"
+          echo '{"discharge":"2027-06-01","name":"테스트","capture":"normal","lastVersion":"0.0.0"}' > "$UD/config.json"
+          JY_SELFTEST=1 JY_USERDATA="$UD" JY_OUT="$PWD/out" ./build/Jeonyeok/Jeonyeok.exe || echo "exit $?"
+          cat out/result.json
+          node -e "const r=require('./out/result.json'); if(r.errors.length||r.errorLog||!r.checks.overlay||!r.checks.ownShot){console.error('self test failed');process.exit(1)}"
+      - name: Run live update test
+        run: |
+          UD="$RUNNER_TEMP/ud2"
+          mkdir -p "$UD/live"
+          echo '{"discharge":"2027-06-01"}' > "$UD/config.json"
+          node -e "require('./unzip.js').unzip('dist/jeonyeok-live.zip', process.argv[1])" "$UD/live"
+          node -e "const f=process.argv[1]+'/package.json';const p=require(f);p.version='99.0.0';require('fs').writeFileSync(f,JSON.stringify(p))" "$UD/live"
+          JY_SELFTEST=version JY_USERDATA="$UD" JY_OUT="$PWD/out-live" ./build/Jeonyeok/Jeonyeok.exe || true
+          cat out-live/result.json
+          node -e "const r=require('./out-live/result.json'); if(r.version!=='99.0.0'){console.error('live update not applied');process.exit(1)}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-win
+          path: Jeonyeok-win.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: win-test
+          path: |
+            out
+            out-live
+
+  linux-test:
+    needs: build
+    if: needs.build.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Install runtime packages
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libnss3 libgtk-3-0 libgbm1 libasound2t64 >/dev/null || sudo apt-get install -y -qq xvfb libnss3 libgtk-3-0 libgbm1 >/dev/null
+      - name: Run app self test
+        run: |
+          unzip -q dist/Jeonyeok-linux.zip -d app
+          UD="$RUNNER_TEMP/ud"
+          mkdir -p "$UD"
+          echo '{"discharge":"2027-06-01","name":"테스트","capture":"normal","lastVersion":"0.0.0"}' > "$UD/config.json"
+          JY_SELFTEST=1 JY_USERDATA="$UD" JY_OUT="$PWD/out" xvfb-run -a -s "-screen 0 1440x900x24" ./app/Jeonyeok/Jeonyeok --no-sandbox || echo "exit $?"
+          cat out/result.json
+          node -e "const r=require('./out/result.json'); if(r.errors.length||r.errorLog||!r.checks.overlay||!r.checks.ownShot){console.error('self test failed');process.exit(1)}"
+      - name: Run live update test
+        run: |
+          UD="$RUNNER_TEMP/ud2"
+          mkdir -p "$UD/live"
+          echo '{"discharge":"2027-06-01"}' > "$UD/config.json"
+          node -e "require('./unzip.js').unzip('dist/jeonyeok-live.zip', process.argv[1])" "$UD/live"
+          node -e "const f=process.argv[1]+'/package.json';const p=require(f);p.version='99.0.0';require('fs').writeFileSync(f,JSON.stringify(p))" "$UD/live"
+          JY_SELFTEST=version JY_USERDATA="$UD" JY_OUT="$PWD/out-live" xvfb-run -a ./app/Jeonyeok/Jeonyeok --no-sandbox || true
+          cat out-live/result.json
+          node -e "const r=require('./out-live/result.json'); if(r.version!=='99.0.0'){console.error('live update not applied');process.exit(1)}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-test
+          path: |
+            out
+            out-live
 
   mac-test:
     needs: build
@@ -111,13 +215,16 @@ jobs:
             out-live
 
   release:
-    needs: [build, mac-test]
+    needs: [build, mac-test, win, linux-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-win
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -125,4 +232,4 @@ jobs:
           V=${{ needs.build.outputs.version }}
           NOTES=$(node -e "const c=require('./changelog.json').find(e=>e.version==='$V'); console.log(c ? c.items.map(i=>'- '+i).join('\\n') : '')")
           [ -z "$NOTES" ] && NOTES=$(git log -1 --pretty=%B)
-          gh release create "v$V" Jeonyeok-mac.zip jeonyeok-live.zip --title "v$V" --notes "$NOTES"
+          gh release create "v$V" Jeonyeok-mac.zip Jeonyeok-win.zip Jeonyeok-linux.zip jeonyeok-live.zip --title "v$V" --notes "$NOTES"

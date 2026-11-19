@@ -50,7 +50,7 @@
       return `<div class="sec-h">캐릭터</div><div class="group">
         ${row('캐릭터 켜기', sw('enabled', c.enabled !== false))}
         ${row('움직임', seg('mode', [['walk', '걷기'], ['fairy', '요정']], c.mode === 'fairy' ? 'fairy' : 'walk'))}
-        ${row('로그인 시 자동 실행', sw('login', D.login))}
+        ${api.platform !== 'linux' ? row('로그인 시 자동 실행', sw('login', D.login)) : ''}
       </div>
       <div class="sec-h">전역일</div><div class="group">
         ${row(`${dateLabel(c.discharge)} <span class="val">${dl}</span>`, btn('setup', '변경'))}
@@ -111,6 +111,7 @@
       ${D.shortcutState === 0 && cur === 'work' ? '<div class="note">스크린샷 단축키를 가져오지 못함. 시스템 설정의 스크린샷 단축키를 끄면 동작</div>' : ''}
       <div class="sec-h">캡쳐</div><div class="group">
         ${row('캐릭터 빼고 지금 캡쳐', btn('capture', '캡쳐'))}
+        ${api.platform !== 'darwin' ? row('단축키 <span class="val">Ctrl+Shift+4 또는 PrintScreen 영역, Ctrl+Shift+3 전체 화면</span>', '') : ''}
         ${row('네컷 완성 후 공유 창 띄우기', sw('shareWindow', D.cfg.shareWindow !== false))}
       </div>`;
     },
@@ -164,7 +165,7 @@
       </div>
       <div class="sec-h">문제 보내기</div><div class="group">
         ${row('버전, 설정, 오류 기록 복사', `<button class="btn" id="diag">복사</button>`)}
-        ${row('기록 폴더', btn('logs', 'Finder에서 열기'))}
+        ${row('기록 폴더', btn('logs', api.platform === 'darwin' ? 'Finder에서 열기' : '폴더 열기'))}
       </div>`;
     },
   };

@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.18.0",
+    "date": "2026-11-19",
+    "items": [
+      "Windows(x64), Linux(x64) 지원. 설치 명령 한 줄로 설치",
+      "Windows, Linux 캡쳐: Ctrl+Shift+4 또는 PrintScreen으로 영역 선택, Ctrl+Shift+3으로 화면 전체. 사진 폴더의 Screenshots에 저장하고 클립보드에도 복사. 업무 모드에서는 캐릭터를 빼고 찍고, 포토이즘 모드에서는 바로 프레임을 씌움",
+      "Windows, Linux에서는 작업 표시줄 아이콘에서 메뉴를 열고, 아이콘에 마우스를 올리면 D-day 표시",
+      "업데이트 받기를 Windows, Linux에서도 동작하도록 변경",
+      "빌드할 때마다 Windows와 Linux에서도 앱을 켜서 자동 점검"
+    ]
+  },
+  {
     "version": "2.17.0",
     "date": "2026-11-19",
     "items": [
