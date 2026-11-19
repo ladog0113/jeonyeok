@@ -313,7 +313,7 @@ function makeZzz(cx, cy) {
     sp.style.fontSize = (1 - i * 0.16).toFixed(2) + 'em';
     d.appendChild(sp);
   });
-  styleBlast(d, [...d.children], style);
+  styleBlast(d, [...d.children], pick(["pop", "wave", "bubble"]));
   d.style.fontSize = fs.toFixed(0) + 'px';
   const bw = fs * text.length * 0.8, bh = fs * 1.1;
   d.style.left = clamp(cx, bw / 2 + 8, W() - bw / 2 - 8).toFixed(0) + 'px';

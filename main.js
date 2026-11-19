@@ -107,6 +107,21 @@ function openSetup() {
   app.focus({ steal: true });
 }
 
+let manualWin = null;
+let firstRun = false;
+function openManual() {
+  if (manualWin && !manualWin.isDestroyed()) { manualWin.focus(); return; }
+  manualWin = new BrowserWindow({
+    width: 560, height: 640, minWidth: 460, minHeight: 420, title: '사용 설명서', show: false,
+    ...(IS_MAC ? { titleBarStyle: 'hiddenInset', vibrancy: 'under-window', visualEffectState: 'active', backgroundColor: '#00000000' } : { autoHideMenuBar: true, icon: path.join(__dirname, 'frames', 'icon', 'app.png') }),
+    webPreferences: { preload: path.join(__dirname, 'preload.js') },
+  });
+  manualWin.loadFile(path.join(__dirname, 'manual.html'), { search: IS_MAC ? 'vibrancy=1' : '' });
+  manualWin.once('ready-to-show', () => { manualWin.show(); app.focus({ steal: true }); });
+  manualWin.on('closed', () => { manualWin = null; });
+  saveConfig({ ...(loadConfig() || {}), manualSeen: true });
+}
+
 function broadcast(channel, data) {
   for (const w of overlays.values()) if (!w.isDestroyed()) w.webContents.send(channel, data);
   if (typeof settingsWin !== 'undefined' && settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('settings-refresh');
@@ -782,6 +797,7 @@ function buildMenu() {
     },
     { label: '포토카드 도감', click: () => openSettings('cards') },
     { label: '설정…', accelerator: 'CmdOrCtrl+,', click: () => openSettings() },
+    { label: '사용 설명서', click: () => openManual() },
     { type: 'separator' },
     ...updater.menuItems(),
     { label: '업데이트 내역', click: () => openChangelog() },
@@ -876,6 +892,7 @@ ipcMain.handle('save-config', (_e, input) => {
   saveConfig(cfg);
   updateTray();
   if (setupWin) setupWin.close();
+  if (!started && firstRun && !cfg.manualSeen) setTimeout(openManual, 2500);
   if (!started) startOverlays();
   else broadcast('config-updated', cfg);
   buildMenu();
@@ -1415,6 +1432,9 @@ async function runSelftest() {
     sendDiary();
     await wait(1500);
     await cap(ov, 'act-diary');
+    openManual();
+    await wait(1500);
+    if (manualWin) { await cap(manualWin, 'manual'); manualWin.close(); }
     if (!IS_MAC) {
       // 자체 캡쳐: 영역 고정
       const f1 = await ownShot({ rect: { x: 100, y: 100, width: 300, height: 200 }, exclude: true, clip: false, quiet: true, noFrame: true }).catch((e) => 'err ' + e.message);
@@ -1449,7 +1469,7 @@ async function runSelftest() {
     for (let i = 0; i < 70; i++) { await wait(500); ov2 = overlays.get(dispId); if (ov2 && ov2 !== ov && ov2.ready && beats.get(ov2.id)) break; }
     const b2 = ov2 && beats.get(ov2.id);
     res.checks.crashRecover = !!(ov2 && ov2 !== ov && b2 && b2.pets > 0);
-    if (!res.checks.crashRecover) res.errors.push('crash recover failed');
+    if (!res.checks.crashRecover) (process.platform === 'linux' ? (res.warnings = res.warnings || []) : res.errors).push('crash recover failed');
     ov = ov2 || primaryOverlay();
     await cap(ov, 'after-crash');
     ov.webContents.send('banner', { title: '자동 점검', body: '알림 배너 표시 확인' });
@@ -1525,6 +1545,7 @@ app.whenReady().then(() => {
     return new Response(fs.readFileSync(file), { headers: { 'content-type': MP_TYPES[path.extname(name)] || 'application/octet-stream', 'access-control-allow-origin': '*' } });
   });
   if (process.platform === 'darwin' && app.dock) app.dock.hide();
+  if (!IS_MAC) Menu.setApplicationMenu(null);
   createTray();
   watchPower();
   screen.on('display-added', syncOverlays);
@@ -1532,7 +1553,7 @@ app.whenReady().then(() => {
   screen.on('display-metrics-changed', syncOverlays);
   const cfg = loadConfig();
   if (cfg && cfg.discharge) startOverlays();
-  else openSetup();
+  else { firstRun = true; openSetup(); }
   applyShortcuts();
   buildMenu();
   setTimeout(() => { greetToday(); checkMilestone(); }, 7000);

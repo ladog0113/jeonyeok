@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>사용 설명서</title>
+<style>
+:root {
+  --label: #1d1d1f; --secondary: rgba(60, 60, 67, .62); --sep: rgba(60, 60, 67, .16);
+  --group: rgba(255, 255, 255, .78); --win: #ececec; --blue: #007aff; --key: #fff;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --label: #f5f5f7; --secondary: rgba(235, 235, 245, .6); --sep: rgba(84, 84, 88, .55); --group: rgba(255, 255, 255, .06); --win: #1e1e1e; --blue: #0a84ff; --key: #3a3a3c; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--win); color: var(--label); font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif; -webkit-font-smoothing: antialiased; word-break: keep-all; display: flex; flex-direction: column; user-select: none; }
+html.vibrant body { background: transparent; }
+header { -webkit-app-region: drag; padding: 40px 24px 10px; text-align: center; }
+html:not(.vibrant) header { padding-top: 18px; }
+h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.sub { margin-top: 2px; color: var(--secondary); font-size: 12px; }
+main { flex: 1; overflow: auto; padding: 8px 20px 12px; }
+h2 { font-size: 12px; font-weight: 600; color: var(--secondary); margin: 16px 10px 6px; }
+.group { background: var(--group); border-radius: 10px; box-shadow: 0 0 0 .5px var(--sep); overflow: hidden; }
+.row { display: flex; gap: 12px; padding: 9px 12px; align-items: baseline; }
+.row + .row { border-top: .5px solid var(--sep); }
+.row .k { flex: none; width: 150px; font-weight: 600; }
+.row .v { flex: 1; color: var(--label); }
+kbd { font: 600 11px/1 -apple-system, "Malgun Gothic", sans-serif; padding: 2px 6px; border-radius: 5px; background: var(--key); box-shadow: 0 0 0 .5px var(--sep), 0 1px 0 var(--sep); white-space: nowrap; }
+footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px 16px; border-top: .5px solid var(--sep); }
+footer button { font: inherit; font-size: 13px; padding: 5px 16px; border: 0; border-radius: 7px; background: var(--blue); color: #fff; cursor: default; }
+</style>
+</head>
+<body>
+<header><h1>전역까지 사용 설명서</h1><div class="sub" id="sub"></div></header>
+<main id="main"></main>
+<footer><button id="ok" type="button">시작하기</button></footer>
+<script>
+const P = (window.api && window.api.platform) || 'darwin';
+if (/vibrancy=1/.test(location.search)) document.documentElement.classList.add('vibrant');
+const mac = P === 'darwin';
+const k = (s) => s.split('+').map((x) => `<kbd>${x}</kbd>`).join(' ');
+const menuWhere = mac ? '화면 위쪽 메뉴바의 D-day 숫자' : P === 'win32' ? '작업 표시줄 오른쪽 알림 영역의 초록색 D 아이콘 (안 보이면 ^ 버튼 안쪽)' : '상단 패널 또는 작업 표시줄의 초록색 D 아이콘';
+document.getElementById('sub').textContent = mac ? 'macOS' : P === 'win32' ? 'Windows' : 'Linux';
+const sections = [
+  ['메뉴 열기', [
+    ['메뉴 위치', menuWhere],
+    ['메뉴에 있는 것', '캐릭터 켜고 끄기, 동작, 캡쳐 모드, 포토카드 도감, 설정, 업데이트'],
+    ['설정 창', `메뉴의 설정 또는 ${k(mac ? 'Cmd+,' : 'Ctrl+,')} (메뉴가 열려 있을 때)`],
+  ]],
+  ['캐릭터 다루기', [
+    ['끌기', '캐릭터를 끌어서 옮김. 모니터가 여러 대면 다른 화면으로 던질 수 있음'],
+    ['누르기', '머리를 누르면 좋아하고, 나머지는 발을 밟힌 반응. 1.5초 안에 10번 누르면 화냄'],
+    ['더블클릭', '한마디'],
+    ['문지르기', '캐릭터 위에서 마우스를 좌우로 문지르면 쓰다듬기'],
+    ['숨바꼭질', '가끔 화면 가장자리에 숨음. 찾아서 누르면 포토카드 빵'],
+  ]],
+  ['캡쳐', mac ? [
+    ['일반 모드', `${k('Cmd+Shift+3')} ${k('Cmd+Shift+4')} 등 Mac 스크린샷 그대로. 캐릭터도 같이 찍힘`],
+    ['업무 모드', '같은 단축키로 찍되 저장되는 결과물에서 캐릭터만 빠짐'],
+    ['포토이즘 모드', '찍을 때마다 설정한 프레임을 씌움. 두 컷, 네 컷은 정해진 장수를 다 찍으면 완성'],
+  ] : [
+    ['영역 캡쳐', `${k('Ctrl+Shift+4')} 또는 ${k('PrintScreen')}. 끌어서 영역 선택, 클릭하면 화면 전체, ${k('Esc')} 취소`],
+    ['화면 전체', k('Ctrl+Shift+3')],
+    ['저장 위치', '사진 폴더의 Screenshots. 클립보드에도 복사됨'],
+    ['업무 모드', '결과물에서 캐릭터가 빠짐'],
+    ['포토이즘 모드', '찍을 때마다 설정한 프레임을 씌움. 두 컷, 네 컷은 정해진 장수를 다 찍으면 완성'],
+  ]],
+  ['포토카드', [
+    ['빵 뜯기', '동작 메뉴의 빵 뜯기, 숨바꼭질, 짬밥 받기 10점 이상으로 카드를 뽑음'],
+    ['도감', '설정의 포토카드 도감. 세트를 다 모으면 옷과 프레임 보상'],
+    ['꾸미기', '도감에서 카드를 크게 본 뒤 꾸미기'],
+  ]],
+  ['자동으로 나오는 것', [
+    ['아침', '처음 켤 때 오늘의 아크릴'],
+    ['정각', '시계를 들고 몇 시인지 외침'],
+    ['물, 스트레칭', '2시간마다 물, 50분 계속 쓰면 스트레칭. 버튼을 누르면 같이 함'],
+    ['오후 5시', '퇴근 연출과 오늘의 일기. 일기는 설정의 캐릭터 일기에서 다시 보기'],
+    ['진급, D-day', '계급이 바뀌는 날 진급식, D-100 단위 기념 연출'],
+  ]],
+  ['업데이트', [
+    ['알림', '새 버전이 나오면 알림이 뜨고 메뉴에 업데이트 설치가 생김'],
+    ['설치', '누르면 받아서 앱이 다시 켜짐. 도감, 일기, 설정은 그대로'],
+    ['다시 보기', '이 설명서는 메뉴의 사용 설명서에서 다시 볼 수 있음'],
+  ]],
+];
+document.getElementById('main').innerHTML = sections.map(([h, rows]) => `<h2>${h}</h2><div class="group">${rows.map(([a, b]) => `<div class="row"><div class="k">${a}</div><div class="v">${b}</div></div>`).join('')}</div>`).join('');
+document.getElementById('ok').onclick = () => window.close();
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.close(); });
+</script>
+</body>
+</html>
