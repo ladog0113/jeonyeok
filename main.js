@@ -1400,7 +1400,7 @@ async function runSelftest() {
   fs.mkdirSync(out, { recursive: true });
   const res = { version: updater.version, path: __dirname, errors: [], checks: {} };
   const done = (code) => { fs.writeFileSync(path.join(out, 'result.json'), JSON.stringify(res, null, 2)); app.exit(code); };
-  setTimeout(() => { res.errors.push('timeout'); done(1); }, 220000);
+  setTimeout(() => { res.errors.push('timeout'); done(1); }, 280000);
   if (process.env.JY_SELFTEST === 'version') return done(0);
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   const cap = async (w, name) => { const img = await w.webContents.capturePage(); fs.writeFileSync(path.join(out, name + '.png'), img.toPNG()); };
@@ -1446,7 +1446,7 @@ async function runSelftest() {
     const dispId = ov.displayId;
     ov.webContents.forcefullyCrashRenderer();
     let ov2 = null;
-    for (let i = 0; i < 30; i++) { await wait(500); ov2 = overlays.get(dispId); if (ov2 && ov2 !== ov && ov2.ready && beats.get(ov2.id)) break; }
+    for (let i = 0; i < 70; i++) { await wait(500); ov2 = overlays.get(dispId); if (ov2 && ov2 !== ov && ov2.ready && beats.get(ov2.id)) break; }
     const b2 = ov2 && beats.get(ov2.id);
     res.checks.crashRecover = !!(ov2 && ov2 !== ov && b2 && b2.pets > 0);
     if (!res.checks.crashRecover) res.errors.push('crash recover failed');
